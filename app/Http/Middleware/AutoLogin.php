@@ -11,18 +11,22 @@ use Symfony\Component\HttpFoundation\Response;
 class AutoLogin
 {
     /**
-     * Auto login as demo user — only runs a DB query if the session
-     * is not already authenticated (i.e. once per browser session).
+     * Auto login as demo user — seamlessly logs in without requiring credentials
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Auth::check() reads from session (no DB hit). Only query DB when needed.
         if (!Auth::check()) {
-            $user = User::where('email', 'demo@financeos.com')->first();
+            $user = User::firstOrCreate(
+                ['email' => 'demo@financeos.com'],
+                [
+                    'name' => 'Alexander Vance',
+                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                    'default_currency' => 'IDR',
+                    'email_verified_at' => now(),
+                ]
+            );
 
-            if ($user) {
-                Auth::login($user, remember: true);
-            }
+            Auth::login($user, remember: true);
         }
 
         return $next($request);
