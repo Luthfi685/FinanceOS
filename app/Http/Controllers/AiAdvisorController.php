@@ -78,6 +78,30 @@ class AiAdvisorController extends Controller
         ];
 
         $result = $this->gemini->generateFinancialAdvice($prompt, $context);
+
+        if (!$result['success']) {
+            $formattedTotal = 'Rp ' . number_format($totalBalance, 0, ',', '.');
+            $formattedInc = 'Rp ' . number_format($monthlyIncome, 0, ',', '.');
+            $formattedExp = 'Rp ' . number_format($monthlyExpense, 0, ',', '.');
+            $formattedNet = 'Rp ' . number_format($netCashFlow, 0, ',', '.');
+
+            $fallbackAdvice = "Halo! Berikut ringkasan analisis keuangan Anda saat ini:\n\n"
+                . "📊 **Evaluasi Kesehatan Arus Kas & Aset**:\n"
+                . "• Total Aset / Saldo: **{$formattedTotal}**\n"
+                . "• Pemasukan Bulan Ini: **{$formattedInc}**\n"
+                . "• Pengeluaran Bulan Ini: **{$formattedExp}**\n"
+                . "• Arus Kas Bersih: **{$formattedNet}** (Rasio Tabungan: {$savingsRate})\n\n"
+                . "🎯 **Rekomendasi Strategis**:\n"
+                . ($totalBalance == 0 ? "• Mulai catat transaksi pertama Anda dengan menekan tombol transaksi atau bicara via mic.\n" : "• Pertahankan pencatatan keuangan yang konsisten untuk memaksimalkan akumulasi aset.\n")
+                . "• Tetapkan target tabungan impian di menu **Target Impian** untuk melacak progres finansial Anda!";
+
+            return response()->json([
+                'success'    => true,
+                'advice'     => $fallbackAdvice,
+                'model_used' => 'Local Financial Engine',
+            ]);
+        }
+
         return response()->json($result);
     }
 

@@ -14,9 +14,12 @@ class GeminiService
     {
         $this->apiKey = config('services.gemini.api_key', env('GEMINI_API_KEY'));
         $this->fallbackModels = [
-            config('services.gemini.model', env('GEMINI_MODEL', 'gemini-1.5-flash')),
-            'gemini-1.5-pro',
-            'gemini-2.0-flash-exp',
+            config('services.gemini.model', env('GEMINI_MODEL', 'gemini-3.6-flash')),
+            'gemini-3.7-flash',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-flash-latest',
+            'gemini-pro-latest',
         ];
     }
 
@@ -183,7 +186,7 @@ Ekstrak data dari foto struk/invoice ini dan KEMBALIKAN HANYA JSON MURNI tanpa f
 }
 PROMPT;
 
-        $visionModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
+        $visionModels = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
         $lastError = '';
 
         foreach ($visionModels as $model) {
