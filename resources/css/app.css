@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        @apply bg-[#F8FAFC] text-slateText-body font-sans;
+        background-image: 
+            radial-gradient(ellipse at 15% 10%, rgba(37, 99, 235, 0.03) 0%, transparent 40%),
+            radial-gradient(ellipse at 85% 80%, rgba(5, 150, 105, 0.03) 0%, transparent 40%);
+        min-height: 100vh;
+    }
+
+    * {
+        border-color: #E2E8F0;
+    }
+
+    ::selection {
+        @apply bg-sapphire-100 text-sapphire-700;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #F1F5F9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 9999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+    }
+}
+
+@layer components {
+
+    /* ── Pure Crisp White Cards ─────────────────────────────────────────── */
+    .glass-card {
+        @apply bg-white border border-slate-200/80 rounded-2xl shadow-card transition-all duration-300;
+    }
+
+    .glass-card-hover {
+        @apply glass-card hover:shadow-card-hover hover:border-slate-300/80 hover:-translate-y-0.5;
+    }
+
+    /* ── Metric Cards ────────────────────────────────────────────────────── */
+    .metric-card {
+        @apply glass-card p-6 relative overflow-hidden;
+    }
+
+    .metric-card-emerald {
+        @apply metric-card border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/40;
+    }
+    .metric-card-emerald:hover {
+        @apply border-emerald-300 shadow-card-hover;
+    }
+
+    .metric-card-sapphire {
+        @apply metric-card border-sapphire-100 bg-gradient-to-br from-white via-white to-sapphire-50/40;
+    }
+    .metric-card-sapphire:hover {
+        @apply border-sapphire-300 shadow-card-hover;
+    }
+
+    .metric-card-gold {
+        @apply metric-card border-amber-100 bg-gradient-to-br from-white via-white to-amber-50/40;
+    }
+    .metric-card-gold:hover {
+        @apply border-amber-300 shadow-card-hover;
+    }
+
+    .metric-card-crimson {
+        @apply metric-card border-rose-100 bg-gradient-to-br from-white via-white to-rose-50/40;
+    }
+    .metric-card-crimson:hover {
+        @apply border-rose-300 shadow-card-hover;
+    }
+
+    /* ── Modern Luxury Buttons ────────────────────────────────────────────── */
+    .btn-primary {
+        @apply relative inline-flex items-center gap-2 px-5 py-2.5 
+               rounded-xl font-semibold text-sm transition-all duration-200
+               bg-slateText-title hover:bg-slate-800 text-white
+               shadow-sm hover:shadow active:scale-95 select-none cursor-pointer;
+    }
+
+    .btn-emerald {
+        @apply relative inline-flex items-center gap-2 px-5 py-2.5 
+               rounded-xl font-semibold text-sm transition-all duration-200
+               bg-emerald-600 hover:bg-emerald-700 text-white
+               shadow-emerald-sm active:scale-95 select-none cursor-pointer;
+    }
+
+    .btn-gold {
+        @apply relative inline-flex items-center gap-2 px-5 py-2.5 
+               rounded-xl font-semibold text-sm transition-all duration-200
+               bg-gold-500 hover:bg-gold-600 text-white
+               shadow-gold-sm active:scale-95 select-none cursor-pointer;
+    }
+
+    .btn-ghost {
+        @apply relative inline-flex items-center gap-2 px-4 py-2
+               rounded-xl font-medium text-sm transition-all duration-200
+               text-slateText-muted hover:text-slateText-title hover:bg-slate-100
+               active:scale-95 select-none cursor-pointer;
+    }
+
+    .btn-danger {
+        @apply relative inline-flex items-center gap-2 px-4 py-2
+               rounded-xl font-semibold text-sm transition-all duration-200
+               bg-rose-50 hover:bg-rose-100 text-rose-600
+               border border-rose-200
+               active:scale-95 select-none cursor-pointer;
+    }
+
+    /* ── Clean Inputs ────────────────────────────────────────────────────── */
+    .input-luxury {
+        @apply w-full px-4 py-2.5 rounded-xl bg-white text-slateText-title 
+               placeholder-slateText-light text-sm
+               border border-slate-200
+               focus:outline-none focus:ring-2 focus:ring-sapphire-500/20 
+               focus:border-sapphire-500 shadow-sm
+               transition-all duration-200;
+    }
+
+    .select-luxury {
+        @apply input-luxury cursor-pointer;
+    }
+
+    .label-luxury {
+        @apply block text-xs font-semibold text-slateText-muted uppercase tracking-wider mb-1.5;
+    }
+
+    /* ── Badges ───────────────────────────────────────────────────────────── */
+    .badge-income {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+               bg-emerald-50 text-emerald-700 border border-emerald-200;
+    }
+    .badge-expense {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+               bg-rose-50 text-rose-700 border border-rose-200;
+    }
+    .badge-transfer {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+               bg-blue-50 text-blue-700 border border-blue-200;
+    }
+
+    /* ── Sidebar Nav ──────────────────────────────────────────────────────── */
+    .sidebar-nav-item {
+        @apply flex items-center gap-3 px-4 py-2.5 rounded-xl
+               text-slateText-muted hover:text-slateText-title text-sm font-medium
+               transition-all duration-200 cursor-pointer
+               hover:bg-slate-100 relative;
+    }
+
+    .sidebar-nav-item.active {
+        @apply text-slateText-title bg-slate-100 font-semibold;
+    }
+
+    .sidebar-nav-item.active::before {
+        content: '';
+        @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-sapphire-600 rounded-r-full;
+    }
+
+    /* ── Progress Bar ────────────────────────────────────────────────────── */
+    .progress-bar-track {
+        @apply h-2.5 rounded-full bg-slate-100 overflow-hidden;
+    }
+
+    .progress-bar-fill {
+        @apply h-full rounded-full transition-all duration-700 ease-out;
+    }
+
+    /* ── Divider ──────────────────────────────────────────────────────────── */
+    .divider {
+        @apply h-px bg-slate-100;
+    }
+
+    /* ── Typography & Headers ─────────────────────────────────────────────── */
+    .section-header {
+        @apply text-base font-display font-bold text-slateText-title;
+    }
+
+    .section-subheader {
+        @apply text-xs text-slateText-muted;
+    }
+}
