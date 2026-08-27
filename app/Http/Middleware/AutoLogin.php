@@ -17,10 +17,10 @@ class AutoLogin
     {
         if (!Auth::check()) {
             $user = User::firstOrCreate(
-                ['email' => 'demo@financeos.com'],
+                ['email' => 'user@financeos.com'],
                 [
-                    'name' => 'Alexander Vance',
-                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                    'name' => 'Pengguna',
+                    'password' => \Illuminate\Support\Facades\Hash::make('password123'),
                     'default_currency' => 'IDR',
                     'email_verified_at' => now(),
                 ]

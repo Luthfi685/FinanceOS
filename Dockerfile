@@ -53,7 +53,7 @@ RUN touch /var/www/html/database/database.sqlite \
 
 # Create deployment startup script
 RUN printf '#!/bin/sh\n\
-php artisan migrate --force --seed\n\
+php artisan migrate --force\n\
 php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
