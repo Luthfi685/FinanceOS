@@ -43,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         Vite::prefetch(concurrency: 3);
 
+        if (app()->environment('production') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Superadmin gate (optional for future use)
         Gate::before(function ($user, $ability) {
             // return $user->isAdmin() ? true : null;
