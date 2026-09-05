@@ -278,31 +278,33 @@ export default function Dashboard({
                             </div>
                         </div>
 
-                        <ResponsiveContainer width="100%" height={230}>
-                            <AreaChart data={cashFlowData ?? []} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-                                <defs>
-                                    <linearGradient id="whiteThemeIncome" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%"  stopColor="#059669" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#059669" stopOpacity={0.0} />
-                                    </linearGradient>
-                                    <linearGradient id="whiteThemeExpense" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%"  stopColor="#E11D48" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#E11D48" stopOpacity={0.0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                                <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false}
-                                       tickFormatter={v => formatCompact(v)} />
-                                <Tooltip content={<ChartTooltip />} />
-                                <Area type="monotone" dataKey="income" name="Pemasukan"
-                                      stroke="#059669" strokeWidth={2.5}
-                                      fill="url(#whiteThemeIncome)" />
-                                <Area type="monotone" dataKey="expense" name="Pengeluaran"
-                                      stroke="#E11D48" strokeWidth={2.5}
-                                      fill="url(#whiteThemeExpense)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        <div style={{ width: '100%', height: 230 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={cashFlowData ?? []} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                                    <defs>
+                                        <linearGradient id="whiteThemeIncome" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%"  stopColor="#059669" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#059669" stopOpacity={0.0} />
+                                        </linearGradient>
+                                        <linearGradient id="whiteThemeExpense" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%"  stopColor="#E11D48" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#E11D48" stopOpacity={0.0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                                    <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false}
+                                           tickFormatter={v => formatCompact(v)} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Area type="monotone" dataKey="income" name="Pemasukan"
+                                          stroke="#059669" strokeWidth={2.5}
+                                          fill="url(#whiteThemeIncome)" />
+                                    <Area type="monotone" dataKey="expense" name="Pengeluaran"
+                                          stroke="#E11D48" strokeWidth={2.5}
+                                          fill="url(#whiteThemeExpense)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
                     {/* Category Breakdown Pie Chart */}
@@ -312,22 +314,24 @@ export default function Dashboard({
 
                         {categoryBreakdown?.length > 0 ? (
                             <>
-                                <ResponsiveContainer width="100%" height={150}>
-                                    <PieChart>
-                                        <Pie
-                                            data={categoryBreakdown}
-                                            cx="50%" cy="50%"
-                                            innerRadius={45} outerRadius={68}
-                                            paddingAngle={3}
-                                            dataKey="total"
-                                        >
-                                            {categoryBreakdown.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value) => [formatCurrency(value), 'Total']} />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                <div style={{ width: '100%', height: 150 }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={categoryBreakdown}
+                                                cx="50%" cy="50%"
+                                                innerRadius={45} outerRadius={68}
+                                                paddingAngle={3}
+                                                dataKey="total"
+                                            >
+                                                {categoryBreakdown.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => [formatCurrency(value), 'Total']} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
 
                                 <div className="space-y-2 mt-3">
                                     {categoryBreakdown.slice(0, 4).map((cat, i) => (
