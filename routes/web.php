@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // AI & Vision Engine
     Route::post('/ai/analyze', [AiAdvisorController::class, 'analyze'])->name('ai.analyze');
     Route::post('/ai/parse-transaction', [AiAdvisorController::class, 'parseTransaction'])->name('ai.parse-transaction');
+    Route::post('/ai/batch-restore', [AiAdvisorController::class, 'batchRestore'])->name('ai.batch-restore');
     Route::post('/ai/scan-receipt', [ReceiptScannerController::class, 'scan'])->name('receipt.scan');
 
     // Reports & Exports

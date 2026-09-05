@@ -206,6 +206,68 @@ PROMPT;
         ]);
     }
 
+    // ─── 2.5 Batch Restore Transactions from Chat History ──────────────────
+
+    public function batchRestore(Request $request): JsonResponse
+    {
+        $request->validate([
+            'messages' => 'required|array|min:1',
+            'messages.*' => 'required|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $userWallets = $user->wallets()->get();
+        $userCategories = $user->categories()->get(['id', 'name', 'type']);
+        $today = Carbon::now()->toDateString();
+
+        // Ensure default wallet if user has none
+        if ($userWallets->isEmpty()) {
+            $defaultWallet = Wallet::create([
+                'user_id' => $user->id,
+                'name' => 'Tunai (Cash)',
+                'type' => 'cash',
+                'balance' => 0,
+                'is_default' => true,
+            ]);
+            $userWallets = collect([$defaultWallet]);
+        }
+
+        $restoredCount = 0;
+        $transferCount = 0;
+
+        foreach ($request->input('messages') as $msg) {
+            $parsed = $this->localMultiIntentParse($msg, $userWallets, $userCategories);
+
+            if ($parsed && $parsed['intent'] === 'wallet_transfer') {
+                if ($userWallets->count() >= 2) {
+                    $this->executeWalletTransfer($user, $parsed['transfer_data'] ?? [], $userWallets, $msg);
+                    $transferCount++;
+                }
+            } elseif ($parsed && $parsed['intent'] === 'add_transaction') {
+                $this->executeAddTransaction($user, $parsed['transaction_data'] ?? [], $userWallets, $userCategories, $msg, $today, false);
+                $restoredCount++;
+                // Refresh categories if new ones were created
+                $userCategories = $user->categories()->get(['id', 'name', 'type']);
+            }
+        }
+
+        $total = $restoredCount + $transferCount;
+
+        if ($total === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ditemukan instruksi pencatatan transaksi yang valid dari riwayat chat.',
+                'count' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'count' => $total,
+            'message' => "🎉 Berhasil memulihkan {$restoredCount} transaksi" . ($transferCount > 0 ? " dan {$transferCount} transfer saldo" : "") . " ke database Neon PostgreSQL Anda!",
+        ]);
+    }
+
     // ─── 3. Execute Wallet Balance Transfer ───────────────────────────────────
 
     private function executeWalletTransfer($user, array $data, $userWallets, string $originalMessage): JsonResponse

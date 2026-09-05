@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Bot, Sparkles, X, Send, User, Loader2, RotateCcw, Mic, MicOff
+    Bot, Sparkles, X, Send, User, Loader2, RotateCcw, Mic, MicOff, Database
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import toast from 'react-hot-toast';
@@ -360,9 +360,64 @@ export default function FinancialCopilot({ isOpen, onClose }) {
         }
     }
 
+    async function handleRestoreFromChat() {
+        if (loading) return;
+
+        // Extract all user messages that contain transactions or amounts
+        const userMessages = messages
+            .filter(m => m.role === 'user' && m.content && m.content.trim())
+            .map(m => m.content.trim());
+
+        const txCandidates = userMessages.filter(text => {
+            return TX_PATTERN(text) || TX_AMOUNT.test(text);
+        });
+
+        if (txCandidates.length === 0) {
+            toast.error('Tidak ditemukan riwayat instruksi transaksi di dalam chat ini.');
+            return;
+        }
+
+        if (!confirm(`Ditemukan ${txCandidates.length} catatan transaksi di riwayat chat Anda.\n\nPulihkan dan masukkan kembali semua data transaksi ini ke database Neon PostgreSQL sekarang?`)) {
+            return;
+        }
+
+        setLoading(true);
+        const toastId = toast.loading(`Sedang memulihkan ${txCandidates.length} transaksi ke database...`);
+
+        try {
+            const res = await axios.post('/ai/batch-restore', { messages: txCandidates });
+            if (res.data.success) {
+                toast.success(res.data.message, { id: toastId, duration: 6000 });
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `🎉 **Pemulihan Berhasil!**\n\n${res.data.message}\n\nSaldo dompet dan grafik di dashboard telah diperbarui secara otomatis.`,
+                    tag: '🔄 Pemulihan Berhasil',
+                }]);
+                router.reload({ preserveScroll: true });
+            } else {
+                toast.error(res.data.message || 'Gagal memulihkan transaksi.', { id: toastId });
+            }
+        } catch (err) {
+            toast.error('Terjadi kendala saat memulihkan transaksi ke database.', { id: toastId });
+        } finally {
+            setLoading(false);
+        }
+    }
+
     async function handleSend(customPrompt = null) {
         const text = customPrompt || inputPrompt;
         if (!text.trim() || loading) return;
+
+        // Check if user is asking to restore/replay data from chat
+        const isRestoreCommand = /\b(pulihkan|balikin|restore|kembalikan)\b.*\b(data|transaksi|chat|saldo|catatan)\b/i.test(text)
+            || /\b(balikin|pulihkan|restore)\s+(data|transaksi)\b/i.test(text);
+
+        if (isRestoreCommand) {
+            setInputPrompt('');
+            setMessages(prev => [...prev, { role: 'user', content: text }]);
+            await handleRestoreFromChat();
+            return;
+        }
 
         // Stop listening if active
         if (isListening && recognitionRef.current) {
