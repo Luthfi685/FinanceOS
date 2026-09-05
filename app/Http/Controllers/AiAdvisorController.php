@@ -80,25 +80,35 @@ class AiAdvisorController extends Controller
         $result = $this->gemini->generateFinancialAdvice($prompt, $context);
 
         if (!$result['success']) {
-            $formattedTotal = 'Rp ' . number_format($totalBalance, 0, ',', '.');
-            $formattedInc = 'Rp ' . number_format($monthlyIncome, 0, ',', '.');
-            $formattedExp = 'Rp ' . number_format($monthlyExpense, 0, ',', '.');
-            $formattedNet = 'Rp ' . number_format($netCashFlow, 0, ',', '.');
+            $isSummaryReq = preg_match('/\b(ringkasan|evaluasi|analisis|kesehatan|kondisi|audit|laporan)\b/i', $prompt);
 
-            $fallbackAdvice = "Halo! Berikut ringkasan analisis keuangan Anda saat ini:\n\n"
-                . "📊 **Evaluasi Kesehatan Arus Kas & Aset**:\n"
-                . "• Total Aset / Saldo: **{$formattedTotal}**\n"
-                . "• Pemasukan Bulan Ini: **{$formattedInc}**\n"
-                . "• Pengeluaran Bulan Ini: **{$formattedExp}**\n"
-                . "• Arus Kas Bersih: **{$formattedNet}** (Rasio Tabungan: {$savingsRate})\n\n"
-                . "🎯 **Rekomendasi Strategis**:\n"
-                . ($totalBalance == 0 ? "• Mulai catat transaksi pertama Anda dengan menekan tombol transaksi atau bicara via mic.\n" : "• Pertahankan pencatatan keuangan yang konsisten untuk memaksimalkan akumulasi aset.\n")
-                . "• Tetapkan target tabungan impian di menu **Target Impian** untuk melacak progres finansial Anda!";
+            if ($isSummaryReq) {
+                $formattedTotal = 'Rp ' . number_format($totalBalance, 0, ',', '.');
+                $formattedInc = 'Rp ' . number_format($monthlyIncome, 0, ',', '.');
+                $formattedExp = 'Rp ' . number_format($monthlyExpense, 0, ',', '.');
+                $formattedNet = 'Rp ' . number_format($netCashFlow, 0, ',', '.');
+
+                $fallbackAdvice = "Halo! Berikut ringkasan analisis keuangan Anda saat ini:\n\n"
+                    . "📊 **Evaluasi Kesehatan Arus Kas & Aset**:\n"
+                    . "• Total Aset / Saldo: **{$formattedTotal}**\n"
+                    . "• Pemasukan Bulan Ini: **{$formattedInc}**\n"
+                    . "• Pengeluaran Bulan Ini: **{$formattedExp}**\n"
+                    . "• Arus Kas Bersih: **{$formattedNet}** (Rasio Tabungan: {$savingsRate})\n\n"
+                    . "🎯 **Rekomendasi Strategis**:\n"
+                    . ($totalBalance == 0 ? "• Mulai catat transaksi pertama Anda dengan menekan tombol transaksi atau bicara via mic.\n" : "• Pertahankan pencatatan keuangan yang konsisten untuk memaksimalkan akumulasi aset.\n")
+                    . "• Tetapkan target tabungan impian di menu **Target Impian** untuk melacak progres finansial Anda!";
+
+                return response()->json([
+                    'success'    => true,
+                    'advice'     => $fallbackAdvice,
+                    'model_used' => 'Local Financial Engine',
+                ]);
+            }
 
             return response()->json([
                 'success'    => true,
-                'advice'     => $fallbackAdvice,
-                'model_used' => 'Local Financial Engine',
+                'advice'     => "Halo! Saya FinanceOS AI Copilot. Ada yang bisa saya bantu terkait pertanyaan finansial, tips pengelolaan uang, atau pencatatan transaksi Anda?",
+                'model_used' => 'Local Assistant',
             ]);
         }
 
@@ -178,13 +188,21 @@ PROMPT;
             return $this->executeAddTransaction($user, $parsed['transaction_data'] ?? [], $userWallets, $userCategories, $message, $today, true);
         }
 
-        // Chat query fallback
-        $advice = $this->gemini->generateFinancialAdvice($message, []);
+        // Chat query fallback - supply user context so AI can answer both general and portfolio questions
+        $now = Carbon::now();
+        $context = [
+            'total_saldo' => 'Rp ' . number_format((float) $userWallets->sum('balance'), 0, ',', '.'),
+            'pemasukan_bulan_ini' => 'Rp ' . number_format($user->getMonthlyIncome($now->month, $now->year), 0, ',', '.'),
+            'pengeluaran_bulan_ini' => 'Rp ' . number_format($user->getMonthlyExpense($now->month, $now->year), 0, ',', '.'),
+            'dompet' => $userWallets->map(fn($w) => "{$w->name}: Rp " . number_format($w->balance, 0, ',', '.'))->toArray(),
+        ];
+
+        $advice = $this->gemini->generateFinancialAdvice($message, $context);
         return response()->json([
             'success'        => true,
             'intent'         => 'chat_query',
             'is_transaction' => false,
-            'message'        => $advice['advice'] ?? 'Ada yang bisa saya bantu terkait transaksi atau portofolio dompet Anda?',
+            'message'        => $advice['advice'] ?? 'Ada yang bisa saya bantu terkait pertanyaan finansial atau pengelolaan uang Anda?',
         ]);
     }
 
@@ -522,6 +540,14 @@ PROMPT;
     private function localMultiIntentParse(string $text, $userWallets, $userCategories): array
     {
         $lower = strtolower(trim($text));
+
+        // 0. Detect if user is asking a question, advice, or general chat (NOT a transaction to execute)
+        $isQuestion = preg_match('/\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|berapa (?:ideal|rekomendasi|persen|sebaiknya|harus|modal|biaya)|tips|cara|rekomendasi|saran|enaknya|tolong jelaskan|jelaskan|bedanya|perbedaan|pengertian|definisi|arti|siapa|halo|hai|pagi|siang|malam)\b/i', $lower)
+            || str_ends_with($lower, '?');
+
+        if ($isQuestion) {
+            return ['intent' => 'chat_query'];
+        }
 
         // 1. Detect Wallet Transfer
         $transferTriggers = ['pindah', 'transfer', 'kirim', 'move', 'geser', 'oper', 'pindahin', 'transferin'];

@@ -13,14 +13,15 @@ class GeminiService
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key', env('GEMINI_API_KEY'));
-        $this->fallbackModels = [
-            config('services.gemini.model', env('GEMINI_MODEL', 'gemini-3.6-flash')),
-            'gemini-3.7-flash',
+        $this->fallbackModels = array_unique(array_filter([
+            env('GEMINI_MODEL', 'gemini-3.6-flash'),
+            config('services.gemini.model', 'gemini-3.6-flash'),
+            'gemini-3.6-flash',
             'gemini-3.5-flash',
-            'gemini-3.1-flash-lite',
             'gemini-flash-latest',
-            'gemini-pro-latest',
-        ];
+            'gemini-3.1-flash-lite',
+            'gemini-3.7-flash',
+        ]));
     }
 
     public function isConfigured(): bool
@@ -42,18 +43,28 @@ class GeminiService
         }
 
         $systemInstruction = <<<INSTRUCTION
-Anda adalah Senior Private Wealth Manager & Financial Advisor AI untuk FinanceOS.
-Berikan konsultasi finansial yang ramah, elegan, komprehensif, dan solutif bagi pengguna.
-Sajikan analisis yang terstruktur dan mudah dipahami dengan format:
-- 📊 **Evaluasi Kesehatan Arus Kas & Aset**: Uraikan kondisi saldo, perbandingan pemasukan vs pengeluaran, dan rasio tabungan.
-- 🔍 **Sorotan & Analisis Pengeluaran**: Identifikasi pos biaya utama atau potensi efisiensi.
-- 🎯 **Rekomendasi Strategis**: Berikan 2–3 langkah nyata yang dapat langsung diterapkan untuk meningkatkan akumulasi kekayaan.
+Anda adalah FinanceOS AI Copilot — Asisten Finansial Pribadi & AI Konsultan yang cerdas, ramah, dan serba bisa.
+Tugas Anda adalah mendampingi pengguna mengelola keuangan dan menjawab pertanyaan apa pun dengan cermat, solutif, dan ramah.
 
-Gunakan bahasa Indonesia yang profesional, hangat, dan suportif. Pastikan seluruh kalimat dan poin selesai secara tuntas dan rapi.
+Pedoman Menjawab:
+1. PERTANYAAN UMUM, EDUKASI, ATAU KONSULTASI (misal: "apa itu saham?", "rekomendasi ide bisnis", "cara investasi pemula", "kenapa pengeluaran saya boros?", "apa kabar?", atau obrolan santai):
+   - Jawab secara langsung, relevan, menarik, dan mudah dipahami oleh siapa saja.
+   - JANGAN memaksakan format laporan saldo (Evaluasi Arus Kas / Sorotan Pengeluaran) jika pengguna hanya bertanya hal umum atau edukasi!
+   - Jika pengguna bertanya tips atau saran yang berkaitan dengan kondisi finansialnya, Anda boleh mengaitkan saran Anda dengan data finansial pengguna secara natural.
+
+2. PERMINTAAN RINGKASAN / AUDIT KONDISI FINANSIAL (misal: "analisis keuangan saya", "ringkasan kondisi finansial", "evaluasi dompet", "cek kesehatan finansial"):
+   - Sajikan laporan yang komprehensif dan terstruktur:
+     * 📊 **Evaluasi Kesehatan Arus Kas & Aset**: Uraikan saldo, perbandingan pemasukan vs pengeluaran, dan rasio tabungan berdasarkan data pengguna.
+     * 🔍 **Sorotan & Analisis Pengeluaran**: Kategori paling boros atau pos biaya utama.
+     * 🎯 **Rekomendasi Strategis**: 2–3 langkah nyata yang bisa langsung diterapkan untuk meningkatkan tabungan.
+
+3. Gaya Komunikasi:
+   - Gunakan Bahasa Indonesia yang natural, suportif, modern, dan profesional.
+   - Gunakan format markdown yang rapi (bold, bullet points, emoji yang pas).
 INSTRUCTION;
 
-        $contextText = json_encode($financialContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $fullPrompt = "{$systemInstruction}\n\n[DATA FINANSIAL PENGGUNA TERKINI]:\n{$contextText}\n\n[PERTANYAAN / PERMINTAAN KLIEN]:\n{$prompt}";
+        $contextText = !empty($financialContext) ? json_encode($financialContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : 'Belum ada data transaksi/dompet.';
+        $fullPrompt = "{$systemInstruction}\n\n[DATA FINANSIAL PENGGUNA TERKINI]:\n{$contextText}\n\n[PERTANYAAN / PESAN PENGGUNA]:\n{$prompt}";
 
         $lastError = '';
 

@@ -8,20 +8,29 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 const QUICK_PROMPTS = [
-    '💡 Ringkasan kondisi finansial saya',
+    '💡 Apa itu reksadana & cara mulainya?',
+    '📊 Ringkasan kondisi finansial saya',
+    '🎯 Tips mengatur gaji agar bisa nabung',
     '🔄 Pindahin uang cash ke rekening',
-    '📊 Kategori mana yang paling boros?',
-    '🎯 Strategi capai surplus tabungan',
 ];
 
-// Detect transaction-like or transfer-like input
+// Detect questions, advice, general chat vs transaction recording
+const QUESTION_WORDS = /\b(apa|apakah|bagaimana|gimana|kenapa|mengapa|berapa (?:ideal|rekomendasi|persen|sebaiknya|harus|modal|biaya)|tips|cara|rekomendasi|saran|enaknya|tolong jelaskan|jelaskan|bedanya|perbedaan|pengertian|definisi|arti|siapa|halo|hai)\b/i;
 const TX_AMOUNT  = /(\d+\s*k\b|\d+\s*rb\b|\d+\s*ribu\b|\d+\s*jt\b|\d+\s*juta\b|rp\s*\d+|\d{4,})/i;
-const TX_ACTIONS = /\b(beli|bayar|byr|makan|jajan|beli|ngisi|topup|top up|abis|habis|gaji|gajian|dapet|dapat|terima|pemasukan|pengeluaran|tambah|masukin|keluarin|transfer|pindah|pindahin|kirim|oper|geser|langganan|subscribe|belanja|isi)\b/i;
-const TX_PATTERN = (text) => TX_AMOUNT.test(text) || TX_ACTIONS.test(text);
+const TX_ACTIONS = /\b(beli|bayar|byr|makan|jajan|ngisi|topup|top up|abis|habis|gaji|gajian|dapet|dapat|terima|pemasukan|pengeluaran|tambah|masukin|keluarin|transfer|pindah|pindahin|kirim|oper|geser|langganan|subscribe|belanja|isi)\b/i;
+
+const TX_PATTERN = (text) => {
+    const trimmed = text.trim();
+    if (QUESTION_WORDS.test(trimmed) || trimmed.endsWith('?')) {
+        return false;
+    }
+    // Must contain both amount and action OR be short format like "kopi 25k"
+    return (TX_AMOUNT.test(trimmed) && TX_ACTIONS.test(trimmed)) || (TX_AMOUNT.test(trimmed) && trimmed.split(/\s+/).length <= 4);
+};
 
 const INITIAL_MESSAGE = {
     role: 'assistant',
-    content: 'Halo! Saya **FinanceOS AI Advisor**. Anda bisa mengetik atau **berbicara via Mikrofon (🎙️)** untuk mencatat transaksi, memindahkan saldo, atau meminta analisis keuangan!',
+    content: 'Halo! Saya **FinanceOS AI Copilot**. Anda bisa bertanya apa saja (edukasi investasi, tips hemat, konsultasi keuangan, obrolan santai), atau **bicara via Mikrofon (🎙️)** untuk mencatat transaksi dan memindahkan saldo secara instan!',
 };
 
 const STORAGE_KEY = 'financeos_ai_chat_history_v1';
