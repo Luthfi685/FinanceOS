@@ -152,10 +152,41 @@
             align-items: center;
             gap: 8px;
             transition: all 0.2s;
+            z-index: 50;
         }
         .print-btn:hover {
             transform: translateY(-2px);
             background: #1E293B;
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 640px) {
+            body {
+                padding: 16px 12px;
+            }
+            .page {
+                padding: 24px 20px;
+            }
+            .header {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .doc-info {
+                text-align: left;
+            }
+            .grid-stats {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .print-btn {
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                font-size: 13px;
+            }
         }
         @media print {
             body {
@@ -218,85 +249,91 @@
             <span>Rekap Saldo Dompet</span>
             <span style="font-size: 12px; font-weight: 500; color: #64748B;">Total Aset: Rp {{ number_format($wallets->sum('balance'), 0, ',', '.') }}</span>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nama Dompet</th>
-                    <th>Tipe Akun</th>
-                    <th style="text-align: right;">Saldo Saat Ini</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($wallets as $w)
-                <tr>
-                    <td style="font-weight: 600;">{{ $w->name }}</td>
-                    <td>{{ $w->type_label }}</td>
-                    <td style="text-align: right; font-weight: 700;">Rp {{ number_format($w->balance, 0, ',', '.') }}</td>
-                </tr>
-                @empty
-                <tr><td colspan="3" style="text-align: center; color: #94A3B8;">Belum ada dompet</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama Dompet</th>
+                        <th>Tipe Akun</th>
+                        <th style="text-align: right;">Saldo Saat Ini</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($wallets as $w)
+                    <tr>
+                        <td style="font-weight: 600;">{{ $w->name }}</td>
+                        <td>{{ $w->type_label }}</td>
+                        <td style="text-align: right; font-weight: 700;">Rp {{ number_format($w->balance, 0, ',', '.') }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="3" style="text-align: center; color: #94A3B8;">Belum ada dompet</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         <!-- Category Breakdown -->
         @if($categoryExpenses->isNotEmpty())
         <div class="section-title">
             <span>Rincian Pengeluaran per Kategori</span>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Kategori</th>
-                    <th style="text-align: right;">Total Pengeluaran</th>
-                    <th style="text-align: right;">Porsi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($categoryExpenses as $catName => $amount)
-                @php $pct = $totalExpense > 0 ? round(($amount / $totalExpense) * 100, 1) : 0; @endphp
-                <tr>
-                    <td style="font-weight: 600;">{{ $catName }}</td>
-                    <td style="text-align: right; font-weight: 700; color: #DC2626;">Rp {{ number_format($amount, 0, ',', '.') }}</td>
-                    <td style="text-align: right; font-weight: 600; color: #64748B;">{{ $pct }}%</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kategori</th>
+                        <th style="text-align: right;">Total Pengeluaran</th>
+                        <th style="text-align: right;">Porsi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($categoryExpenses as $catName => $amount)
+                    @php $pct = $totalExpense > 0 ? round(($amount / $totalExpense) * 100, 1) : 0; @endphp
+                    <tr>
+                        <td style="font-weight: 600;">{{ $catName }}</td>
+                        <td style="text-align: right; font-weight: 700; color: #DC2626;">Rp {{ number_format($amount, 0, ',', '.') }}</td>
+                        <td style="text-align: right; font-weight: 600; color: #64748B;">{{ $pct }}%</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
         @endif
 
         <!-- Transactions History -->
         <div class="section-title">
             <span>Daftar Transaksi ({{ $transactions->count() }} Data)</span>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Tanggal</th>
-                    <th>Keterangan / Merchant</th>
-                    <th>Kategori</th>
-                    <th>Dompet</th>
-                    <th style="text-align: right;">Nominal</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($transactions as $tx)
-                <tr>
-                    <td style="font-size: 12px; color: #64748B; font-weight: 500;">{{ $tx->date->format('d/m/Y') }}</td>
-                    <td style="font-weight: 600;">
-                        {{ $tx->merchant_name ?? $tx->description ?? 'Transaksi' }}
-                    </td>
-                    <td><span class="badge {{ $tx->type === 'income' ? 'badge-income' : 'badge-expense' }}">{{ $tx->category?->name ?? 'Lainnya' }}</span></td>
-                    <td style="font-size: 12px; color: #64748B;">{{ $tx->wallet?->name ?? '-' }}</td>
-                    <td style="text-align: right;" class="{{ $tx->type === 'income' ? 'amount-pos' : 'amount-neg' }}">
-                        {{ $tx->type === 'income' ? '+' : '-' }}Rp {{ number_format($tx->amount, 0, ',', '.') }}
-                    </td>
-                </tr>
-                @empty
-                <tr><td colspan="5" style="text-align: center; color: #94A3B8; padding: 24px;">Tidak ada transaksi di periode ini</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Keterangan / Merchant</th>
+                        <th>Kategori</th>
+                        <th>Dompet</th>
+                        <th style="text-align: right;">Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($transactions as $tx)
+                    <tr>
+                        <td style="font-size: 12px; color: #64748B; font-weight: 500;">{{ $tx->date->format('d/m/Y') }}</td>
+                        <td style="font-weight: 600;">
+                            {{ $tx->merchant_name ?? $tx->description ?? 'Transaksi' }}
+                        </td>
+                        <td><span class="badge {{ $tx->type === 'income' ? 'badge-income' : 'badge-expense' }}">{{ $tx->category?->name ?? 'Lainnya' }}</span></td>
+                        <td style="font-size: 12px; color: #64748B;">{{ $tx->wallet?->name ?? '-' }}</td>
+                        <td style="text-align: right;" class="{{ $tx->type === 'income' ? 'amount-pos' : 'amount-neg' }}">
+                            {{ $tx->type === 'income' ? '+' : '-' }}Rp {{ number_format($tx->amount, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" style="text-align: center; color: #94A3B8; padding: 24px;">Tidak ada transaksi di periode ini</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         <!-- Footer -->
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: center; font-size: 11px; color: #94A3B8;">
