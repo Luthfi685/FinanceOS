@@ -9,7 +9,7 @@ RUN npm run build
 # ── Stage 2: PHP Application Environment ──
 FROM php:8.3-cli-alpine
 
-# Install system dependencies & PHP extensions for Laravel + SQLite
+# Install system dependencies & PHP extensions for Laravel + SQLite + PostgreSQL
 RUN apk add --no-cache \
     curl \
     git \
@@ -18,9 +18,13 @@ RUN apk add --no-cache \
     zip \
     unzip \
     sqlite-dev \
+    libpq \
+    postgresql-dev \
     oniguruma-dev \
     && docker-php-ext-install \
     pdo_sqlite \
+    pdo_pgsql \
+    pgsql \
     bcmath \
     mbstring \
     gd \
@@ -53,6 +57,7 @@ RUN touch /var/www/html/database/database.sqlite \
 
 # Create deployment startup script
 RUN printf '#!/bin/sh\n\
+php artisan config:clear\n\
 php artisan migrate --force\n\
 php artisan config:cache\n\
 php artisan route:cache\n\
