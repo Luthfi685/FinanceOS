@@ -150,30 +150,110 @@ function formatInline(text) {
     return parts;
 }
 
+/**
+ * Smart Indonesian financial speech normalization
+ * Converts phonetic misrecognitions, spelled-out numbers, and spoken e-wallets into clean text.
+ */
+function normalizeIndonesianSpeech(text) {
+    if (!text) return '';
+    let t = text;
+
+    // Convert spoken numbers into numeric digits
+    const spokenRules = [
+        [/\bsetengah\s+juta\b/gi, '500 ribu'],
+        [/\bseperempat\s+juta\b/gi, '250 ribu'],
+        [/\bsatu\s+juta\b/gi, '1 juta'],
+        [/\bdua\s+juta\b/gi, '2 juta'],
+        [/\btiga\s+juta\b/gi, '3 juta'],
+        [/\bempat\s+juta\b/gi, '4 juta'],
+        [/\blima\s+juta\b/gi, '5 juta'],
+        [/\benam\s+juta\b/gi, '6 juta'],
+        [/\btujuh\s+juta\b/gi, '7 juta'],
+        [/\bdelapan\s+juta\b/gi, '8 juta'],
+        [/\bsembilan\s+juta\b/gi, '9 juta'],
+        [/\bsepuluh\s+juta\b/gi, '10 juta'],
+        [/\bseratus\s+lima\s+puluh\s+ribu\b/gi, '150 ribu'],
+        [/\bseratus\s+dua\s+puluh\s+lima\s+ribu\b/gi, '125 ribu'],
+        [/\bseratus\s+ribu\b/gi, '100 ribu'],
+        [/\bdua\s+ratus\s+lima\s+puluh\s+ribu\b/gi, '250 ribu'],
+        [/\bdua\s+ratus\s+ribu\b/gi, '200 ribu'],
+        [/\btiga\s+ratus\s+ribu\b/gi, '300 ribu'],
+        [/\bempat\s+ratus\s+ribu\b/gi, '400 ribu'],
+        [/\blima\s+ratus\s+ribu\b/gi, '500 ribu'],
+        [/\benam\s+ratus\s+ribu\b/gi, '600 ribu'],
+        [/\btujuh\s+ratus\s+ribu\b/gi, '700 ribu'],
+        [/\bdelapan\s+ratus\s+ribu\b/gi, '800 ribu'],
+        [/\bsembilan\s+ratus\s+ribu\b/gi, '900 ribu'],
+        [/\bdua\s+puluh\s+lima\s+ribu\b/gi, '25 ribu'],
+        [/\btiga\s+puluh\s+lima\s+ribu\b/gi, '35 ribu'],
+        [/\bempat\s+puluh\s+lima\s+ribu\b/gi, '45 ribu'],
+        [/\blima\s+puluh\s+lima\s+ribu\b/gi, '55 ribu'],
+        [/\bsepuluh\s+ribu\b/gi, '10 ribu'],
+        [/\bsebelas\s+ribu\b/gi, '11 ribu'],
+        [/\bdua\s+belas\s+ribu\b/gi, '12 ribu'],
+        [/\btiga\s+belas\s+ribu\b/gi, '13 ribu'],
+        [/\bempat\s+belas\s+ribu\b/gi, '14 ribu'],
+        [/\blima\s+belas\s+ribu\b/gi, '15 ribu'],
+        [/\benam\s+belas\s+ribu\b/gi, '16 ribu'],
+        [/\btujuh\s+belas\s+ribu\b/gi, '17 ribu'],
+        [/\bdelapan\s+belas\s+ribu\b/gi, '18 ribu'],
+        [/\bsembilan\s+belas\s+ribu\b/gi, '19 ribu'],
+        [/\bdua\s+puluh\s+ribu\b/gi, '20 ribu'],
+        [/\btiga\s+puluh\s+ribu\b/gi, '30 ribu'],
+        [/\bempat\s+puluh\s+ribu\b/gi, '40 ribu'],
+        [/\blima\s+puluh\s+ribu\b/gi, '50 ribu'],
+        [/\benam\s+puluh\s+ribu\b/gi, '60 ribu'],
+        [/\btujuh\s+puluh\s+ribu\b/gi, '70 ribu'],
+        [/\bdelapan\s+puluh\s+ribu\b/gi, '80 ribu'],
+        [/\bsembilan\s+puluh\s+ribu\b/gi, '90 ribu'],
+        [/\bseribu\b/gi, '1 ribu'],
+        [/\bdua\s+ribu\b/gi, '2 ribu'],
+        [/\btiga\s+ribu\b/gi, '3 ribu'],
+        [/\bempat\s+ribu\b/gi, '4 ribu'],
+        [/\blima\s+ribu\b/gi, '5 ribu'],
+        [/\benam\s+ribu\b/gi, '6 ribu'],
+        [/\btujuh\s+ribu\b/gi, '7 ribu'],
+        [/\bdelapan\s+ribu\b/gi, '8 ribu'],
+        [/\bsembilan\s+ribu\b/gi, '9 ribu'],
+    ];
+
+    spokenRules.forEach(([pattern, replacement]) => {
+        t = t.replace(pattern, replacement);
+    });
+
+    // Fix speech recognition hearing "k" as "kg", "kilo", "key", "kay"
+    t = t.replace(/(\d+)\s*(?:kg|kilo|key|kay)\b/gi, '$1k');
+
+    // Fix spoken e-wallet / bank names
+    t = t.replace(/\b(?:shopee\s*pay|shoppy\s*pay|sopi\s*pay|spay)\b/gi, 'ShopeePay');
+    t = t.replace(/\b(?:go\s*pay|gopai|go-pay)\b/gi, 'GoPay');
+    t = t.replace(/\b(?:danau|danna)\b/gi, 'Dana');
+    t = t.replace(/\b(?:si\s*bank|sea\s*bank)\b/gi, 'SeaBank');
+    t = t.replace(/\b(?:b\s*c\s*a|bece\s*a)\b/gi, 'BCA');
+    t = t.replace(/\b(?:b\s*r\s*i|bere\s*i)\b/gi, 'BRI');
+    t = t.replace(/\b(?:b\s*n\s*i|bene\s*i)\b/gi, 'BNI');
+    t = t.replace(/\b(?:uang\s*kas|uang\s*tunai|kes)\b/gi, 'cash');
+
+    return t.replace(/\s+/g, ' ').trim();
+}
+
 export default function FinancialCopilot({ isOpen, onClose }) {
-    // 1. Initialize messages from localStorage
     const [messages, setMessages] = useState(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
-                }
-            }
+            return saved ? JSON.parse(saved) : [INITIAL_MESSAGE];
         } catch (e) {
-            // fallback
+            return [INITIAL_MESSAGE];
         }
-        return [INITIAL_MESSAGE];
     });
-
     const [inputPrompt, setInputPrompt] = useState('');
     const [loading, setLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const chatEndRef = useRef(null);
     const recognitionRef = useRef(null);
+    const silenceTimeoutRef = useRef(null);
 
-    // 2. Persist messages
+    // 1. Sync messages with localStorage
     useEffect(() => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -186,14 +266,15 @@ export default function FinancialCopilot({ isOpen, onClose }) {
         }
     }, [messages, isOpen]);
 
-    // 3. Web Speech Recognition Setup
+    // 3. Web Speech Recognition Setup with Real-Time Indonesian Correction
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = 'id-ID';
-            recognition.continuous = false;
+            recognition.continuous = true;
             recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
 
             recognition.onstart = () => {
                 setIsListening(true);
@@ -201,14 +282,30 @@ export default function FinancialCopilot({ isOpen, onClose }) {
             };
 
             recognition.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    .map(r => r[0].transcript)
-                    .join('');
-                setInputPrompt(transcript);
+                let fullTranscript = '';
+
+                for (let i = 0; i < event.results.length; i++) {
+                    fullTranscript += event.results[i][0].transcript + ' ';
+                }
+
+                const cleaned = normalizeIndonesianSpeech(fullTranscript);
+                if (cleaned) {
+                    setInputPrompt(cleaned);
+                }
+
+                // Reset silence auto-stop timer (2.5 seconds of silence stops listening)
+                if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+                silenceTimeoutRef.current = setTimeout(() => {
+                    if (recognitionRef.current) {
+                        try { recognitionRef.current.stop(); } catch (e) {}
+                    }
+                    setIsListening(false);
+                }, 2500);
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
+                if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
                 setIsListening(false);
                 if (event.error !== 'no-speech') {
                     toast.error('Gagal mendengarkan mikrofon. Coba lagi.');
@@ -216,11 +313,19 @@ export default function FinancialCopilot({ isOpen, onClose }) {
             };
 
             recognition.onend = () => {
+                if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
                 setIsListening(false);
             };
 
             recognitionRef.current = recognition;
         }
+
+        return () => {
+            if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (e) {}
+            }
+        };
     }, []);
 
     function toggleListening() {
@@ -230,14 +335,17 @@ export default function FinancialCopilot({ isOpen, onClose }) {
         }
 
         if (isListening) {
+            if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
             recognitionRef.current.stop();
             setIsListening(false);
         } else {
             try {
                 recognitionRef.current.start();
             } catch (err) {
-                recognitionRef.current.stop();
-                setTimeout(() => recognitionRef.current.start(), 200);
+                try {
+                    recognitionRef.current.stop();
+                    setTimeout(() => recognitionRef.current.start(), 200);
+                } catch (e) {}
             }
         }
     }

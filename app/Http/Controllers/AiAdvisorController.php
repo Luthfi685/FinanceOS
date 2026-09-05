@@ -474,7 +474,7 @@ PROMPT;
         $brandMap = [
             'shopeepay' => ['shopeepay', 'shopee pay', 'spay', 'shope'],
             'gopay'     => ['gopay', 'go pay', 'go-pay'],
-            'dana'      => ['dana'],
+            'dana'      => ['dana', 'danau'],
             'ovo'       => ['ovo'],
             'bca'       => ['bca', 'blu', 'blu by bca', 'bca digital'],
             'seabank'   => ['seabank', 'sea bank', 'sea'],
@@ -482,7 +482,7 @@ PROMPT;
             'bri'       => ['bri', 'brimo'],
             'bni'       => ['bni', 'bni mobile'],
             'jago'      => ['jago', 'bank jago'],
-            'cash'      => ['cash', 'tunai', 'dompet', 'kantong', 'fisik'],
+            'cash'      => ['cash', 'tunai', 'dompet', 'kantong', 'fisik', 'kas', 'kes'],
         ];
 
         foreach ($brandMap as $brand => $aliases) {
@@ -518,11 +518,11 @@ PROMPT;
         $aliases = [
             'shopeepay' => ['shopeepay', 'shopee pay', 'spay', 'shope'],
             'gopay'     => ['gopay', 'go pay', 'go-pay'],
-            'dana'      => ['dana'],
+            'dana'      => ['dana', 'danau'],
             'ovo'       => ['ovo'],
             'seabank'   => ['seabank', 'sea bank'],
             'bca'       => ['bca', 'blu'],
-            'cash'      => ['cash', 'tunai', 'uang tunai'],
+            'cash'      => ['cash', 'tunai', 'uang tunai', 'kas', 'kes'],
         ];
 
         foreach ($aliases as $key => $keywords) {
