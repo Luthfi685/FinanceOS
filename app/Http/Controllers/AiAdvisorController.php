@@ -569,22 +569,28 @@ PROMPT;
     {
         $lower = strtolower($text);
 
-        foreach ($wallets as $wallet) {
+        // 1. Exact wallet name match (longest first to avoid partial false matches)
+        $sorted = $wallets->sortByDesc(fn($w) => strlen($w->name))->values();
+        foreach ($sorted as $wallet) {
             $wName = strtolower($wallet->name);
             if (str_contains($lower, $wName)) {
                 return $wallet;
             }
         }
 
-        // Aliases
+        // 2. Brand/alias keywords
         $aliases = [
-            'shopeepay' => ['shopeepay', 'shopee pay', 'spay', 'shope'],
+            'shopeepay' => ['shopeepay', 'shopee pay', 'spay', 'shope pay'],
             'gopay'     => ['gopay', 'go pay', 'go-pay'],
             'dana'      => ['dana', 'danau'],
             'ovo'       => ['ovo'],
             'seabank'   => ['seabank', 'sea bank'],
-            'bca'       => ['bca', 'blu'],
-            'cash'      => ['cash', 'tunai', 'uang tunai', 'kas', 'kes'],
+            'bca'       => ['bca', 'blu by bca', 'blu'],
+            'bri'       => ['bri', 'brimo'],
+            'bni'       => ['bni'],
+            'mandiri'   => ['mandiri', 'livin'],
+            'jago'      => ['jago', 'bank jago'],
+            'cash'      => ['cash', 'tunai', 'uang tunai', 'kas', 'kes', 'dompet fisik'],
         ];
 
         foreach ($aliases as $key => $keywords) {
@@ -592,6 +598,32 @@ PROMPT;
                 if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
                     $w = $this->findMatchingWallet($key, $wallets);
                     if ($w) return $w;
+                }
+            }
+        }
+
+        // 3. Generic terms — try to match against wallet type or common naming
+        $genericMap = [
+            'bank'      => 'bank',
+            'rekening'  => 'bank',
+            'tabungan'  => 'bank',
+            'ewallet'   => 'e-wallet',
+            'e-wallet'  => 'e-wallet',
+            'e wallet'  => 'e-wallet',
+            'dompet digital' => 'e-wallet',
+            'dompet utama'   => null,   // will try default wallet
+            'utama'          => null,
+        ];
+
+        foreach ($genericMap as $term => $walletType) {
+            if (str_contains($lower, $term)) {
+                if ($walletType) {
+                    $found = $wallets->first(fn($w) => str_contains(strtolower($w->type ?? ''), strtolower($walletType)));
+                    if ($found) return $found;
+                } else {
+                    // Fallback to default wallet
+                    $found = $wallets->firstWhere('is_default', true) ?? $wallets->first();
+                    if ($found) return $found;
                 }
             }
         }
@@ -623,7 +655,7 @@ PROMPT;
 
         if ($isTransfer) {
             $isAll = str_contains($lower, 'semua') || str_contains($lower, 'seluruh') || str_contains($lower, 'biar 0') || str_contains($lower, 'kosong');
-            
+
             $amount = 0;
             if (!$isAll && preg_match('/(\d+(?:[.,]\d+)?)\s*(jt|juta|k|rb|ribu)?/i', $lower, $m)) {
                 $raw    = (float) str_replace(',', '.', $m[1]);
@@ -638,18 +670,26 @@ PROMPT;
             $srcName  = null;
             $destName = null;
 
-            if (preg_match('/dari\s+([a-zA-Z0-9\s]+?)\s+ke\s+([a-zA-Z0-9\s]+)/i', $lower, $matches)) {
+            // Handle: "dari/di/di dompet X ke Y" or just "ke Y"
+            if (preg_match('/(?:dari|di(?:\s+dompet)?)\s+([a-zA-Z0-9\s]+?)\s+ke\s+([a-zA-Z0-9\s]+)/i', $lower, $matches)) {
                 $srcName  = trim($matches[1]);
                 $destName = trim($matches[2]);
             } elseif (preg_match('/ke\s+([a-zA-Z0-9\s]+)/i', $lower, $matches)) {
                 $destName = trim($matches[1]);
             }
 
+            // Strip trailing noise words from dest/src names
+            $noiseWords = ['gw', 'gue', 'saya', 'aku', 'dong', 'deh', 'yuk', 'ya', 'sekarang'];
+            foreach ($noiseWords as $noise) {
+                if ($srcName)  $srcName  = trim(preg_replace('/\b' . $noise . '\b/i', '', $srcName));
+                if ($destName) $destName = trim(preg_replace('/\b' . $noise . '\b/i', '', $destName));
+            }
+
             return [
                 'intent' => 'wallet_transfer',
                 'transfer_data' => [
-                    'source_wallet_name'      => $srcName,
-                    'destination_wallet_name' => $destName,
+                    'source_wallet_name'      => $srcName ?: null,
+                    'destination_wallet_name' => $destName ?: null,
                     'is_transfer_all'         => $isAll,
                     'amount'                  => $amount,
                 ],
