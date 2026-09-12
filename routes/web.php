@@ -66,3 +66,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// ─── WhatsApp Webhook (Fonnte) ────────────────────────────────────────────────
+Route::match(['get', 'post'], '/api/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
+    ->name('webhook.whatsapp');
+Route::match(['get', 'post'], '/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
+    ->name('webhook.whatsapp.alt');

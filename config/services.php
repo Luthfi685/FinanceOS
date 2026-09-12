@@ -40,4 +40,8 @@ return [
         'model'   => env('GEMINI_MODEL', 'gemini-3.6-flash'),
     ],
 
+    'fonnte' => [
+        'token' => env('FONNTE_TOKEN', 'Ux3uesBxvvtBmbSy5VNn'),
+    ],
+
 ];
