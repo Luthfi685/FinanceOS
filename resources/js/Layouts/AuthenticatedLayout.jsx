@@ -5,7 +5,7 @@ import {
     LayoutDashboard, Wallet, ArrowLeftRight, Target,
     Bot, BarChart3, Settings, LogOut, Menu, X,
     ChevronRight, Bell, Search, TrendingUp, Sparkles,
-    Trophy, Scissors
+    Trophy, Scissors, MessageSquare
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import FinancialCopilot from '@/Components/FinancialCopilot';
@@ -18,6 +18,7 @@ const navItems = [
     { href: '/budgets',      label: 'Anggaran',      icon: BarChart3 },
     { href: '/split-bill',   label: 'Split Bill',    icon: Scissors },
     { href: '/achievements', label: 'Pencapaian',    icon: Trophy },
+    { href: '/whatsapp-bot', label: 'WhatsApp Bot',  icon: MessageSquare, badge: 'AI' },
     { href: '/categories',   label: 'Kategori',      icon: Settings },
 ];
 
@@ -66,6 +67,11 @@ function SidebarContent({ user, currentPath, onNavClick }) {
                                 >
                                     <Icon size={18} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
                                     <span className="flex-1 text-sm">{item.label}</span>
+                                    {item.badge && (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                            {item.badge}
+                                        </span>
+                                    )}
                                     {isActive && <ChevronRight size={14} className="text-slate-400" />}
                                 </div>
                             </div>

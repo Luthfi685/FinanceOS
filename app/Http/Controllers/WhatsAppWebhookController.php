@@ -24,6 +24,56 @@ class WhatsAppWebhookController extends Controller
     }
 
     /**
+     * Web page for WhatsApp Bot Status & Guide
+     */
+    public function index(Request $request): \Inertia\Response
+    {
+        $user  = \Illuminate\Support\Facades\Auth::user();
+        $token = config('services.fonnte.token', env('FONNTE_TOKEN'));
+
+        $recentTransactions = $user->transactions()
+            ->with(['wallet:id,name,color', 'category:id,name,icon,color'])
+            ->where(function ($q) {
+                $q->where('is_ai_generated', true)
+                  ->orWhere('description', 'LIKE', '%WhatsApp%');
+            })
+            ->latest('id')
+            ->limit(10)
+            ->get();
+
+        $wallets = $user->wallets()->get(['id', 'name', 'balance', 'type']);
+
+        return \Inertia\Inertia::render('WhatsAppBot/Index', [
+            'linkedPhone'        => $user->whatsapp_number ?: '6283126435560',
+            'isConfigured'       => !empty($token),
+            'webhookUrl'         => 'https://financeos-fh71.onrender.com/api/webhook/whatsapp',
+            'recentTransactions' => $recentTransactions,
+            'wallets'            => $wallets,
+        ]);
+    }
+
+    /**
+     * Update user's WhatsApp number
+     */
+    public function updateNumber(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'whatsapp_number' => 'required|string|max:30',
+        ]);
+
+        $clean = preg_replace('/[^0-9]/', '', $validated['whatsapp_number']);
+        if (str_starts_with($clean, '0')) {
+            $clean = '62' . substr($clean, 1);
+        }
+
+        \Illuminate\Support\Facades\Auth::user()->update([
+            'whatsapp_number' => $clean,
+        ]);
+
+        return back()->with('success', 'Nomor WhatsApp berhasil diperbarui!');
+    }
+
+    /**
      * Handle incoming webhook requests from Fonnte
      */
     public function handle(Request $request): JsonResponse

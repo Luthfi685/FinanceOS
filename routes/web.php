@@ -61,6 +61,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Split Bill (pure frontend page — no backend needed)
     Route::get('/split-bill', fn() => Inertia::render('SplitBill/Index'))->name('split-bill');
 
+    // WhatsApp Bot Integration
+    Route::get('/whatsapp-bot', [\App\Http\Controllers\WhatsAppWebhookController::class, 'index'])->name('whatsapp.index');
+    Route::post('/whatsapp-bot/number', [\App\Http\Controllers\WhatsAppWebhookController::class, 'updateNumber'])->name('whatsapp.update-number');
+
     // Profile (Breeze default)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
