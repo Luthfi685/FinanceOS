@@ -65,6 +65,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/whatsapp-bot', [\App\Http\Controllers\WhatsAppWebhookController::class, 'index'])->name('whatsapp.index');
     Route::post('/whatsapp-bot/number', [\App\Http\Controllers\WhatsAppWebhookController::class, 'updateNumber'])->name('whatsapp.update-number');
 
+    // Data Recovery & Sync Diagnostics
+    Route::get('/system/data-audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit'])->name('system.data-audit');
+    Route::post('/system/merge-data', [\App\Http\Controllers\DataRecoveryController::class, 'mergeToMaster'])->name('system.merge-data');
+    Route::post('/system/recalculate-balances', [\App\Http\Controllers\DataRecoveryController::class, 'recalculateBalances'])->name('system.recalculate-balances');
+    Route::post('/system/clean-duplicates', [\App\Http\Controllers\DataRecoveryController::class, 'cleanDuplicates'])->name('system.clean-duplicates');
+
     // Profile (Breeze default)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -76,3 +82,21 @@ Route::match(['get', 'post'], '/api/webhook/whatsapp', [\App\Http\Controllers\Wh
     ->name('webhook.whatsapp');
 Route::match(['get', 'post'], '/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
     ->name('webhook.whatsapp.alt');
+
+// Public Diagnostics API
+Route::get('/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
+Route::post('/api/system/fix-all', function () {
+    $recovery = new \App\Http\Controllers\DataRecoveryController();
+    $merge = $recovery->mergeToMaster(request())->getData(true);
+    $clean = $recovery->cleanDuplicates(request())->getData(true);
+    $recalc = $recovery->recalculateBalances(request())->getData(true);
+    return response()->json([
+        'status'  => true,
+        'message' => 'Semua data transaksi dan saldo berhasil disinkronkan & diperbaiki.',
+        'details' => [
+            'merge'   => $merge,
+            'clean'   => $clean,
+            'recalc'  => $recalc,
+        ]
+    ]);
+});
