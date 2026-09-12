@@ -22,7 +22,14 @@ class TransactionController extends Controller
             ->latest('date')
             ->latest('id');
 
-        // Filters
+        // Default to current month if no date filter given
+        $dateFrom = $request->filled('date_from') ? $request->date_from : now()->startOfMonth()->toDateString();
+        $dateTo   = $request->filled('date_to')   ? $request->date_to   : now()->endOfMonth()->toDateString();
+
+        $query->whereDate('date', '>=', $dateFrom)
+              ->whereDate('date', '<=', $dateTo);
+
+        // Additional Filters
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
@@ -31,12 +38,6 @@ class TransactionController extends Controller
         }
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
-        }
-        if ($request->filled('date_from')) {
-            $query->whereDate('date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('date', '<=', $request->date_to);
         }
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
@@ -51,7 +52,10 @@ class TransactionController extends Controller
             'transactions' => $transactions,
             'wallets'      => Auth::user()->wallets()->select('id', 'name', 'currency')->get(),
             'categories'   => Auth::user()->categories()->select('id', 'name', 'type', 'icon', 'color')->get(),
-            'filters'      => $request->only(['type', 'wallet_id', 'category_id', 'date_from', 'date_to', 'search']),
+            'filters'      => array_merge(
+                ['date_from' => $dateFrom, 'date_to' => $dateTo],
+                $request->only(['type', 'wallet_id', 'category_id', 'search'])
+            ),
         ]);
     }
 

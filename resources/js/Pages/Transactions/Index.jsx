@@ -201,6 +201,54 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
     const [editingTx, setEditingTx] = useState(null);
     const [scanModalOpen, setScanModalOpen] = useState(false);
 
+    // Month/Year picker state — parse from current filters or default to today
+    const getInitialMonthYear = () => {
+        if (filters?.date_from) {
+            const d = new Date(filters.date_from);
+            return { month: d.getMonth(), year: d.getFullYear() };
+        }
+        const now = new Date();
+        return { month: now.getMonth(), year: now.getFullYear() };
+    };
+    const [selectedDate, setSelectedDate] = useState(getInitialMonthYear);
+
+    const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+    function applyMonthFilter(month, year) {
+        const firstDay = `${year}-${String(month + 1).padStart(2,'0')}-01`;
+        const lastDay  = new Date(year, month + 1, 0);
+        const lastDayStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
+        router.get('/transactions', {
+            ...filters,
+            date_from: firstDay,
+            date_to:   lastDayStr,
+            search:    search || undefined,
+        }, { preserveState: true, replace: true });
+    }
+
+    function goToPrevMonth() {
+        const d = selectedDate.month === 0
+            ? { month: 11, year: selectedDate.year - 1 }
+            : { month: selectedDate.month - 1, year: selectedDate.year };
+        setSelectedDate(d);
+        applyMonthFilter(d.month, d.year);
+    }
+
+    function goToNextMonth() {
+        const d = selectedDate.month === 11
+            ? { month: 0, year: selectedDate.year + 1 }
+            : { month: selectedDate.month + 1, year: selectedDate.year };
+        setSelectedDate(d);
+        applyMonthFilter(d.month, d.year);
+    }
+
+    function clearMonthFilter() {
+        const now = new Date();
+        const d = { month: now.getMonth(), year: now.getFullYear() };
+        setSelectedDate(d);
+        applyMonthFilter(d.month, d.year);
+    }
+
     function handleFilter(key, value) {
         router.get('/transactions', { ...filters, [key]: value || undefined }, { preserveState: true, replace: true });
     }
@@ -270,6 +318,61 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
             }
         >
             <Head title="Transaksi — FinanceOS" />
+
+            {/* Month Navigator + Summary */}
+            <div className="glass-card p-4 bg-white mb-4 border border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {/* Month Picker */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={goToPrevMonth}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
+                            title="Bulan sebelumnya"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white min-w-[160px] justify-center">
+                            <Calendar size={13} className="text-slate-300" />
+                            <span className="text-xs font-bold">{MONTHS[selectedDate.month]} {selectedDate.year}</span>
+                        </div>
+                        <button
+                            onClick={goToNextMonth}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
+                            title="Bulan berikutnya"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                        <button
+                            onClick={clearMonthFilter}
+                            className="text-[11px] font-semibold text-blue-600 hover:underline ml-1 cursor-pointer"
+                            title="Kembali ke bulan ini"
+                        >
+                            Bulan ini
+                        </button>
+                    </div>
+
+                    {/* Summary Pills */}
+                    <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                            <ArrowUpRight size={13} className="text-emerald-600" />
+                            <span className="text-[11px] font-semibold text-emerald-700">Masuk: </span>
+                            <span className="text-[11px] font-bold font-mono text-emerald-700">
+                                {formatCurrency(transactions?.data?.reduce((s, t) => t.type === 'income' ? s + parseFloat(t.amount) : s, 0) ?? 0)}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-100">
+                            <ArrowDownRight size={13} className="text-rose-600" />
+                            <span className="text-[11px] font-semibold text-rose-700">Keluar: </span>
+                            <span className="text-[11px] font-bold font-mono text-rose-700">
+                                {formatCurrency(transactions?.data?.reduce((s, t) => t.type === 'expense' ? s + parseFloat(t.amount) : s, 0) ?? 0)}
+                            </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                            {transactions?.total ?? 0} transaksi
+                        </span>
+                    </div>
+                </div>
+            </div>
 
             {/* Filter Bar */}
             <div className="glass-card p-4 bg-white mb-6 flex flex-wrap items-center gap-3 border border-slate-200">
