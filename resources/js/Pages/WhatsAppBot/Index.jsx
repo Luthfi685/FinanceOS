@@ -1,8 +1,8 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import {
     MessageSquare, CheckCircle2, Copy, Check, ExternalLink,
-    Zap, Sparkles, Smartphone, Clock, Camera, Pencil, Link2
+    Zap, Sparkles, Smartphone, Clock, Camera, Pencil
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -21,10 +21,8 @@ function formatDate(dateStr) {
 export default function WhatsAppBotIndex({
     botPhone = '6283176325931',
     linkedPhone = '',
-    webhookUrl = 'https://financeos-fh71.onrender.com/api/webhook/whatsapp',
     recentTransactions = [],
 }) {
-    const [copiedUrl, setCopiedUrl]           = useState(false);
     const [copiedExample, setCopiedExample]   = useState('');
     const [isEditingPhone, setIsEditingPhone] = useState(!linkedPhone);
 
@@ -40,13 +38,9 @@ export default function WhatsAppBotIndex({
 
     function copyToClipboard(text, id) {
         navigator.clipboard.writeText(text);
-        if (id === 'url') {
-            setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000);
-            toast.success('URL Webhook disalin!');
-        } else {
-            setCopiedExample(id); setTimeout(() => setCopiedExample(''), 2000);
-            toast.success('Disalin!');
-        }
+        setCopiedExample(id);
+        setTimeout(() => setCopiedExample(''), 2000);
+        toast.success('Disalin!');
     }
 
     function handleSavePhone(e) {
@@ -190,23 +184,6 @@ export default function WhatsAppBotIndex({
                     </div>
                 </div>
 
-                {/* â”€â”€ Webhook URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-                <div className="glass-card p-4 bg-white border border-slate-200">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                            <Link2 size={14} className="text-slate-400" />
-                            <span className="text-xs font-bold text-slate-700">Endpoint Webhook Fonnte</span>
-                        </div>
-                        <button onClick={() => copyToClipboard(webhookUrl, 'url')}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer">
-                            {copiedUrl ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                            {copiedUrl ? 'Tersalin!' : 'Salin'}
-                        </button>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs text-slate-600 select-all break-all">
-                        {webhookUrl}
-                    </div>
-                </div>
 
                 {/* â”€â”€ Recent Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <div className="glass-card p-5 bg-white border border-slate-200">
