@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Wallet;
 use App\Http\Requests\WalletRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,6 +41,23 @@ class WalletController extends Controller
         $wallet->update($request->validated());
 
         return back()->with('success', 'Wallet berhasil diperbarui.');
+    }
+
+    /**
+     * Reset / paksa-set saldo aktual dompet ke nilai tertentu.
+     * Berguna untuk sinkronisasi saldo ke kondisi nyata di HP.
+     */
+    public function adjustBalance(Request $request, Wallet $wallet): RedirectResponse
+    {
+        $this->authorize('update', $wallet);
+
+        $request->validate([
+            'balance' => 'required|numeric',
+        ]);
+
+        $wallet->update(['balance' => $request->balance]);
+
+        return back()->with('success', "Saldo \"{$wallet->name}\" berhasil disetel ulang ke Rp " . number_format($request->balance, 0, ',', '.') . '.');
     }
 
     public function destroy(Wallet $wallet): RedirectResponse

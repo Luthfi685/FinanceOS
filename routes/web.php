@@ -37,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Wallets
     Route::resource('wallets', WalletController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::post('/wallets/{wallet}/adjust-balance', [WalletController::class, 'adjustBalance'])->name('wallets.adjust-balance');
 
     // Transactions
     Route::resource('transactions', TransactionController::class)
