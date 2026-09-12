@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -126,5 +127,55 @@ class TransactionController extends Controller
         });
 
         return back()->with('success', 'Transaksi berhasil dihapus.');
+    }
+
+    public function resetTransactions(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'scope' => 'required|in:all,month,wallet',
+            'wallet_id' => 'nullable|exists:wallets,id',
+            'month' => 'nullable|integer|between:1,12',
+            'year' => 'nullable|integer',
+            'wallet_action' => 'required|in:keep,zero',
+            'confirmation' => 'required|in:RESET',
+        ]);
+
+        $user = Auth::user();
+        $query = $user->transactions()->withTrashed();
+
+        $scopeDescription = '';
+
+        if ($request->scope === 'month' && $request->filled('month') && $request->filled('year')) {
+            $month = (int) $request->month;
+            $year = (int) $request->year;
+            $query->whereMonth('date', $month)->whereYear('date', $year);
+            $monthName = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
+            $scopeDescription = "transaksi periode {$monthName}";
+        } elseif ($request->scope === 'wallet' && $request->filled('wallet_id')) {
+            $wallet = $user->wallets()->find($request->wallet_id);
+            if (!$wallet) {
+                return back()->with('error', 'Dompet tidak ditemukan.');
+            }
+            $query->where('wallet_id', $request->wallet_id);
+            $scopeDescription = "transaksi dompet \"{$wallet->name}\"";
+        } else {
+            $scopeDescription = "seluruh riwayat transaksi";
+        }
+
+        DB::transaction(function () use ($query, $request, $user) {
+            // Force delete for complete clean reset
+            $query->forceDelete();
+
+            // Zero wallet balance if selected
+            if ($request->wallet_action === 'zero') {
+                if ($request->scope === 'wallet' && $request->filled('wallet_id')) {
+                    $user->wallets()->where('id', $request->wallet_id)->update(['balance' => 0]);
+                } elseif ($request->scope === 'all') {
+                    $user->wallets()->update(['balance' => 0]);
+                }
+            }
+        });
+
+        return back()->with('success', "Berhasil me-reset {$scopeDescription}!");
     }
 }

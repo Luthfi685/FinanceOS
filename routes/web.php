@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/wallets/{wallet}/adjust-balance', [WalletController::class, 'adjustBalance'])->name('wallets.adjust-balance');
 
     // Transactions
+    Route::post('/transactions/reset', [TransactionController::class, 'resetTransactions'])->name('transactions.reset');
     Route::resource('transactions', TransactionController::class)
         ->only(['index', 'store', 'update', 'destroy']);
 

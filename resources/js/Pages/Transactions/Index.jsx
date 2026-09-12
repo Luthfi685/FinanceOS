@@ -5,11 +5,13 @@ import {
     Plus, Search, ArrowUpRight, ArrowDownRight,
     Trash2, Pencil, X, ChevronLeft, ChevronRight,
     ArrowLeftRight, Check, Camera, Sparkles, Calendar, Wallet,
-    FileText, FileSpreadsheet
+    FileText, FileSpreadsheet, RotateCcw, AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ScanReceiptModal from '@/Components/ScanReceiptModal';
+
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 function formatCurrency(amount) {
     return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.abs(amount));
@@ -195,11 +197,247 @@ function TransactionModal({ isOpen, onClose, wallets, categories, editing = null
     );
 }
 
+function ResetTransactionsModal({ isOpen, onClose, wallets, currentMonth, currentYear }) {
+    const [scope, setScope] = useState('all');
+    const [walletId, setWalletId] = useState(wallets[0]?.id || '');
+    const [walletAction, setWalletAction] = useState('keep');
+    const [confirmation, setConfirmation] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const currentMonthName = `${MONTHS[currentMonth]} ${currentYear}`;
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        if (confirmation.trim().toUpperCase() !== 'RESET') {
+            toast.error('Ketik kata RESET untuk konfirmasi');
+            return;
+        }
+
+        setIsSubmitting(true);
+        router.post('/transactions/reset', {
+            scope,
+            wallet_id: scope === 'wallet' ? walletId : null,
+            month: scope === 'month' ? currentMonth + 1 : null,
+            year: scope === 'month' ? currentYear : null,
+            wallet_action: walletAction,
+            confirmation: 'RESET',
+        }, {
+            onSuccess: () => {
+                toast.success('Transaksi berhasil di-reset!');
+                setIsSubmitting(false);
+                setConfirmation('');
+                onClose();
+            },
+            onError: () => {
+                setIsSubmitting(false);
+                toast.error('Gagal me-reset transaksi.');
+            },
+        });
+    }
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: 15 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+                    >
+                        <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-6 shadow-2xl my-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center">
+                                        <RotateCcw size={18} className="text-rose-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-display font-bold text-slate-900">
+                                            Reset Riwayat Transaksi
+                                        </h3>
+                                        <p className="text-xs text-slate-500">Bersihkan data transaksi secara aman & terkontrol</p>
+                                    </div>
+                                </div>
+                                <button onClick={onClose} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="p-3 mb-4 rounded-xl bg-rose-50/70 border border-rose-200 text-xs text-rose-900 flex items-start gap-2.5">
+                                <AlertTriangle size={16} className="text-rose-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <span className="font-bold">Peringatan:</span> Transaksi yang dihapus tidak dapat dikembalikan. Gunakan fitur ini jika data transaksi kamu sebelumnya berantakan atau duplikat.
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                {/* 1. Scope Selection */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-2">
+                                        1. Pilih Data yang Direset
+                                    </label>
+                                    <div className="space-y-2">
+                                        <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                                            scope === 'all' ? 'bg-rose-50/50 border-rose-300 ring-1 ring-rose-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="scope"
+                                                checked={scope === 'all'}
+                                                onChange={() => setScope('all')}
+                                                className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                                            />
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-900">Semua Transaksi (Total Reset)</p>
+                                                <p className="text-[11px] text-slate-500">Hapus seluruh riwayat transaksi akun dari awal sampai sekarang</p>
+                                            </div>
+                                        </label>
+
+                                        <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                                            scope === 'month' ? 'bg-rose-50/50 border-rose-300 ring-1 ring-rose-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="scope"
+                                                checked={scope === 'month'}
+                                                onChange={() => setScope('month')}
+                                                className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                                            />
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-900">Hanya Bulan Ini Saja ({currentMonthName})</p>
+                                                <p className="text-[11px] text-slate-500">Hanya menghapus transaksi pada periode bulan yang sedang dilihat</p>
+                                            </div>
+                                        </label>
+
+                                        <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                                            scope === 'wallet' ? 'bg-rose-50/50 border-rose-300 ring-1 ring-rose-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="scope"
+                                                checked={scope === 'wallet'}
+                                                onChange={() => setScope('wallet')}
+                                                className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                                            />
+                                            <div className="w-full">
+                                                <p className="text-xs font-bold text-slate-900">Berdasarkan Dompet Tertentu</p>
+                                                <p className="text-[11px] text-slate-500 mb-2">Hanya menghapus transaksi dari dompet yang dipilih</p>
+                                                {scope === 'wallet' && (
+                                                    <select
+                                                        value={walletId}
+                                                        onChange={(e) => setWalletId(e.target.value)}
+                                                        className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                                    >
+                                                        {wallets.map(w => (
+                                                            <option key={w.id} value={w.id}>{w.name}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* 2. Wallet Balance Action */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-2">
+                                        2. Pengaruh ke Saldo Dompet
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <label className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                                            walletAction === 'keep' ? 'bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-200' : 'bg-slate-50 border-slate-200'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="walletAction"
+                                                checked={walletAction === 'keep'}
+                                                onChange={() => setWalletAction('keep')}
+                                                className="sr-only"
+                                            />
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs font-bold text-emerald-900">Pertahankan Saldo</span>
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Rekomendasi</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600">Saldo dompet saat ini tidak berubah (tetap sesuai yang Anda setel di HP).</p>
+                                        </label>
+
+                                        <label className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                                            walletAction === 'zero' ? 'bg-rose-50/60 border-rose-300 ring-1 ring-rose-200' : 'bg-slate-50 border-slate-200'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="walletAction"
+                                                checked={walletAction === 'zero'}
+                                                onChange={() => setWalletAction('zero')}
+                                                className="sr-only"
+                                            />
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs font-bold text-rose-900">Setel ke Rp 0</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600">Saldo dompet terkait ikut dikosongkan menjadi Rp 0.</p>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* 3. Confirmation Input */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                                        3. Ketik <span className="font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 font-bold">RESET</span> untuk konfirmasi
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ketik RESET"
+                                        value={confirmation}
+                                        onChange={(e) => setConfirmation(e.target.value.toUpperCase())}
+                                        className="w-full text-xs font-mono font-bold tracking-wider uppercase px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={confirmation.trim().toUpperCase() !== 'RESET' || isSubmitting}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm shadow-rose-200"
+                                    >
+                                        {isSubmitting ? (
+                                            <span>Memproses...</span>
+                                        ) : (
+                                            <>
+                                                <Trash2 size={13} />
+                                                <span>Reset Transaksi Sekarang</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
+
 export default function TransactionsIndex({ transactions, wallets = [], categories = [], filters = {} }) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
     const [scanModalOpen, setScanModalOpen] = useState(false);
+    const [resetModalOpen, setResetModalOpen] = useState(false);
 
     // Month/Year picker state — parse from current filters or default to today
     const getInitialMonthYear = () => {
@@ -211,8 +449,6 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
         return { month: now.getMonth(), year: now.getFullYear() };
     };
     const [selectedDate, setSelectedDate] = useState(getInitialMonthYear);
-
-    const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
     function applyMonthFilter(month, year) {
         const firstDay = `${year}-${String(month + 1).padStart(2,'0')}-01`;
@@ -306,6 +542,13 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold hover:bg-amber-100 transition-all cursor-pointer"
                         >
                             <Sparkles size={14} className="text-amber-600" /> Scan Struk
+                        </button>
+                        <button
+                            onClick={() => setResetModalOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold hover:bg-rose-100 transition-all cursor-pointer"
+                            title="Reset atau bersihkan riwayat transaksi"
+                        >
+                            <RotateCcw size={14} className="text-rose-600" /> Reset Transaksi
                         </button>
                         <button
                             onClick={() => { setEditingTx(null); setModalOpen(true); }}
@@ -528,6 +771,14 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
                 isOpen={scanModalOpen}
                 onClose={() => setScanModalOpen(false)}
                 onScanned={handleReceiptScanned}
+            />
+
+            <ResetTransactionsModal
+                isOpen={resetModalOpen}
+                onClose={() => setResetModalOpen(false)}
+                wallets={wallets}
+                currentMonth={selectedDate.month}
+                currentYear={selectedDate.year}
             />
         </AuthenticatedLayout>
     );
