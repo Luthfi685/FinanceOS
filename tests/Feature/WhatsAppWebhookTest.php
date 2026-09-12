@@ -74,4 +74,28 @@ class WhatsAppWebhookTest extends TestCase
         // Assert balance decreased by 25,000
         $this->assertEquals($initialBalance - 25000, $wallet->fresh()->balance);
     }
+
+    public function test_unregistered_contact_is_silently_ignored(): void
+    {
+        $response = $this->postJson('/api/webhook/whatsapp', [
+            'sender'  => '628999999999',
+            'message' => 'Bro besok jadi futsal ga?',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'ignored']);
+    }
+
+    public function test_casual_non_financial_chat_from_registered_user_is_ignored(): void
+    {
+        $user = User::factory()->create(['whatsapp_number' => '6283126435560']);
+
+        $response = $this->postJson('/api/webhook/whatsapp', [
+            'sender'  => '6283126435560',
+            'message' => 'Lagi di mana bro?',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['status' => 'ignored']);
+    }
 }

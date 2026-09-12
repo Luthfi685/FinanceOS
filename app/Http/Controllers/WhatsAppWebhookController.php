@@ -107,23 +107,31 @@ class WhatsAppWebhookController extends Controller
             $cleanPhone = '62' . substr($cleanPhone, 1);
         }
 
-        // 1. Identify User
+        // 1. Identify User by registered whatsapp_number
         $user = User::where('whatsapp_number', $cleanPhone)
             ->orWhere('whatsapp_number', $sender)
             ->orWhere('whatsapp_number', '0' . substr($cleanPhone, 2))
             ->first();
 
-        // If not found, default to first user (e.g. Alexander Vance / demo) and auto-link this phone number!
+        // If the number is NOT registered:
         if (!$user) {
-            $user = User::first();
-            if ($user) {
-                $user->update(['whatsapp_number' => $cleanPhone]);
+            // Only reply if the sender explicitly asks to link / register
+            if (preg_match('/^(daftar|hubungkan|link|\/start)/i', $message)) {
+                $reply = "👋 *Halo! Nomor WhatsApp Anda Belum Terhubung*\n\n"
+                       . "Nomor WhatsApp ini (*+{$cleanPhone}*) belum terdaftar di akun FinanceOS mana pun.\n\n"
+                       . "🔗 *Cara Menghubungkan:*\n"
+                       . "1. Buka https://financeos-fh71.onrender.com/whatsapp-bot\n"
+                       . "2. Masukkan nomor Anda di menu tersebut.\n\n"
+                       . "Setelah terhubung, Anda bisa langsung mencatat pengeluaran secepat kirim chat!";
+                return $this->sendReply($sender, $reply);
             }
-        }
 
-        if (!$user) {
-            $reply = "❌ *Akun FinanceOS Tidak Ditemukan*\n\nSilakan pastikan Anda sudah terdaftar di web FinanceOS.";
-            return $this->sendReply($sender, $reply);
+            // Normal chat from friends / family / other contacts -> SILENTLY IGNORE!
+            Log::info("Ignoring chat from unregistered contact: {$sender}");
+            return response()->json([
+                'status'  => 'ignored',
+                'message' => 'Sender not registered in FinanceOS. Normal personal chat ignored.',
+            ]);
         }
 
         // 2. Handle Receipt Photo Upload (Image URL)
@@ -138,7 +146,7 @@ class WhatsAppWebhookController extends Controller
         }
 
         // 3. Command: Bantuan / Menu / Start
-        if (preg_match('/^(bantuan|help|menu|\/start|panduan|halo|hi|hai|p)$/i', $message)) {
+        if (preg_match('/^(bantuan|help|menu|\/start|panduan|fitur)$/i', $message)) {
             $reply = $this->getHelpMessage($user);
             return $this->sendReply($sender, $reply);
         }
@@ -157,13 +165,23 @@ class WhatsAppWebhookController extends Controller
 
         // 6. Natural Language Processing (Transaction, Transfer, or Financial Advice)
         $reply = $this->processNaturalLanguage($user, $message);
+
+        // If it was just a casual non-financial message, silently ignore so regular chats aren't disturbed
+        if ($reply === null) {
+            Log::info("Ignoring casual non-financial chat from registered user: {$message}");
+            return response()->json([
+                'status'  => 'ignored',
+                'message' => 'Non-financial message ignored.',
+            ]);
+        }
+
         return $this->sendReply($sender, $reply);
     }
 
     /**
      * Process natural text using Fast Local NLP + Gemini AI
      */
-    protected function processNaturalLanguage(User $user, string $message): string
+    protected function processNaturalLanguage(User $user, string $message): ?string
     {
         $userWallets    = $user->wallets()->get();
         $userCategories = $user->categories()->get(['id', 'name', 'type']);
@@ -193,7 +211,15 @@ class WhatsAppWebhookController extends Controller
             return $this->executeAddTransaction($user, $localParsed['transaction_data'] ?? [], $userWallets, $userCategories, $today);
         }
 
-        // 2. GEMINI AI FALLBACK FOR COMPLEX INTENTS
+        // Filter: Check if message has any financial keywords or numeric amounts
+        $isFinancial = preg_match('/\b(\d+(?:[.,]\d+)?\s*(?:rb|k|ribu|jt|juta)?|\d{4,}|beli|bayar|makan|minum|kopi|bensin|gaji|uang|saldo|transfer|tarik|setor|utang|piutang|hemat|investasi|keuangan|rupiah|rp|nabung|dompet|biaya|ongkos|jajan)\b/i', $message);
+
+        if (!$isFinancial) {
+            // Casual everyday conversation (e.g. "lagi di mana", "oke", "siap", "wkwk", "halo") -> ignore silently
+            return null;
+        }
+
+        // 2. GEMINI AI FALLBACK FOR COMPLEX INTENTS (Only runs if message is financial)
         if ($this->gemini->isConfigured()) {
             $walletNames = $userWallets->pluck('name')->implode(', ');
             $catNames    = $userCategories->pluck('name')->implode('|');
@@ -250,7 +276,7 @@ PROMPT;
         }
 
         return "🤔 *FinanceOS Bot*\n\n"
-             . "Saya belum mengenali transaksi dari pesan tersebut.\n"
+             . "Saya mendeteksi percakapan keuangan, tapi nominal atau dompetnya belum terbaca jelas.\n"
              . "💡 *Contoh yang bisa langsung dicatat:*\n"
              . "• _Kopi Kenangan 28rb bca_\n"
              . "• _Bensin Pertalite 35000 tunai_\n"
