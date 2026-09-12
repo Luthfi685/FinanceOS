@@ -84,19 +84,5 @@ Route::match(['get', 'post'], '/webhook/whatsapp', [\App\Http\Controllers\WhatsA
     ->name('webhook.whatsapp.alt');
 
 // Public Diagnostics API
-Route::get('/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
-Route::post('/api/system/fix-all', function () {
-    $recovery = new \App\Http\Controllers\DataRecoveryController();
-    $merge = $recovery->mergeToMaster(request())->getData(true);
-    $clean = $recovery->cleanDuplicates(request())->getData(true);
-    $recalc = $recovery->recalculateBalances(request())->getData(true);
-    return response()->json([
-        'status'  => true,
-        'message' => 'Semua data transaksi dan saldo berhasil disinkronkan & diperbaiki.',
-        'details' => [
-            'merge'   => $merge,
-            'clean'   => $clean,
-            'recalc'  => $recalc,
-        ]
-    ]);
-});
+Route::match(['get', 'post'], '/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
+Route::match(['get', 'post'], '/api/system/fix-all', [\App\Http\Controllers\DataRecoveryController::class, 'fixAll']);

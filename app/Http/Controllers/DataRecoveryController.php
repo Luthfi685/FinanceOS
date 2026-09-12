@@ -171,4 +171,24 @@ class DataRecoveryController extends Controller
             'message'      => count($deletedIds) . ' transaksi duplikat berhasil dibersihkan.',
         ]);
     }
+
+    /**
+     * Run full auto-healing: merge orphaned records, remove duplicates, recalculate wallet balances
+     */
+    public function fixAll(Request $request): JsonResponse
+    {
+        $mergeRes = $this->mergeToMaster($request)->getData(true);
+        $cleanRes = $this->cleanDuplicates($request)->getData(true);
+        $recalcRes = $this->recalculateBalances($request)->getData(true);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Semua data transaksi dan saldo berhasil disinkronkan & diperbaiki.',
+            'details' => [
+                'merge'   => $mergeRes,
+                'clean'   => $cleanRes,
+                'recalc'  => $recalcRes,
+            ]
+        ]);
+    }
 }
