@@ -118,12 +118,15 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'metrics' => [
-                'total_balance'   => (float) $totalBalance,
-                'current_income'  => $currentIncome,
-                'current_expense' => $currentExpense,
-                'net_cash_flow'   => $netCashFlow,
-                'income_change'   => $this->percentageChange($prevIncome, $currentIncome),
-                'expense_change'  => $this->percentageChange($prevExpense, $currentExpense),
+                'total_balance'    => (float) $totalBalance,
+                'current_income'   => $currentIncome,
+                'current_expense'  => $currentExpense,
+                'prev_income'      => $prevIncome,
+                'prev_expense'     => $prevExpense,
+                'prev_month_label' => $now->copy()->subMonth()->translatedFormat('M Y'),
+                'net_cash_flow'    => $netCashFlow,
+                'income_change'    => $this->percentageChange($prevIncome, $currentIncome),
+                'expense_change'   => $this->percentageChange($prevExpense, $currentExpense),
             ],
             'cashFlowData'       => $cashFlowData,
             'categoryBreakdown'  => $categoryBreakdown,

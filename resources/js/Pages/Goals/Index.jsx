@@ -15,16 +15,17 @@ function formatCurrency(amount) {
 
 function GoalModal({ isOpen, onClose, editing = null }) {
     const { data, setData, post, put, errors, processing, reset } = useForm({
-        name:           editing?.name           ?? '',
-        target_amount:  editing?.target_amount  ?? '',
-        daily_target:   editing?.daily_target   ?? '',
-        current_amount: editing?.current_amount ?? '0',
-        target_date:    editing?.target_date    ?? '',
-        icon:           editing?.icon           ?? '🎯',
-        color:          editing?.color          ?? '#2563EB',
+        name:                editing?.name                ?? '',
+        target_amount:       editing?.target_amount       ?? '',
+        daily_target:        editing?.daily_target        ?? '',
+        current_amount:      editing?.current_amount      ?? '0',
+        target_date:         editing?.target_date         ?? '',
+        icon:                editing?.icon                ?? '🎯',
+        color:               editing?.color               ?? '#2563EB',
+        is_physical_savings: editing?.is_physical_savings ? true : false,
     });
 
-    const EMOJIS = ['🎯', '💻', '🚗', '🏠', '✈️', '💍', '📱', '🎓', '🏖️', '💼', '🛡️', '⚡'];
+    const EMOJIS = ['🎯', '🏺', '🐷', '📦', '🪙', '💰', '💻', '🚗', '🏠', '✈️', '💍', '📱', '🎓', '🏖️', '💼', '🛡️', '⚡'];
     const COLORS = ['#2563EB', '#059669', '#D97706', '#7C3AED', '#DB2777', '#0891B2', '#4F46E5', '#0F172A'];
 
     const remainingToSave = Math.max(0, (Number(data.target_amount) || 0) - (Number(data.current_amount) || 0));
@@ -69,13 +70,53 @@ function GoalModal({ isOpen, onClose, editing = null }) {
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-3.5">
+                                {/* Savings Mode Selector */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-semibold text-slate-700">Jenis Tabungan</label>
+                                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setData('is_physical_savings', false);
+                                                if (data.icon === '🏺' || data.icon === '🐷') setData('icon', '🎯');
+                                            }}
+                                            className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                                !data.is_physical_savings ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            <span>🎯</span> Tabungan Web
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setData('is_physical_savings', true);
+                                                if (data.icon === '🎯') setData('icon', '🏺');
+                                            }}
+                                            className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                                data.is_physical_savings ? 'bg-white text-amber-600 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            <span>🏺</span> Celengan Fisik (Real)
+                                        </button>
+                                    </div>
+                                    {data.is_physical_savings ? (
+                                        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                                            <b>🏺 Celengan Fisik (Real Life):</b> Tabungan ini terpisah dari dompet digital web. Saat kamu setor atau catat tabungan, <u>saldo dompet web tidak akan dipotong</u>. Pas untuk celengan celengan uang tunai di rumah!
+                                        </div>
+                                    ) : (
+                                        <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
+                                            <b>💳 Tabungan Web Digital:</b> Terintegrasi langsung dengan dompet web. Saat kamu menyetor, saldo dompet yang kamu pilih akan dipotong otomatis.
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Target Impian</label>
                                     <input
                                         type="text"
                                         value={data.name}
                                         onChange={e => setData('name', e.target.value)}
-                                        placeholder="Contoh: KE RANU KUMBOLO 2027, Beli MacBook..."
+                                        placeholder={data.is_physical_savings ? "Contoh: Celengan Ayam di Kamar, Amplop Liburan..." : "Contoh: KE RANU KUMBOLO 2027, Beli MacBook..."}
                                         className="input-luxury text-xs py-2"
                                         required
                                     />
@@ -194,6 +235,8 @@ function GoalModal({ isOpen, onClose, editing = null }) {
 }
 
 function DepositModal({ isOpen, onClose, goal, wallets, defaultAmount = '' }) {
+    const isPhysical = Boolean(goal?.is_physical_savings);
+
     const { data, setData, post, errors, processing, reset } = useForm({
         wallet_id: wallets[0]?.id ?? '',
         amount: defaultAmount || '',
@@ -228,8 +271,15 @@ function DepositModal({ isOpen, onClose, goal, wallets, defaultAmount = '' }) {
                         <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                            isPhysical ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                                        }`}>
+                                            {isPhysical ? '🏺 Celengan Fisik (Real Life)' : '💳 Tabungan Web'}
+                                        </span>
+                                    </div>
                                     <h3 className="text-base font-bold font-display text-slate-900 flex items-center gap-2">
-                                        <span>{goal.icon}</span> Setor Dana: {goal.name}
+                                        <span>{goal.icon}</span> Setor: {goal.name}
                                     </h3>
                                     <p className="text-xs text-slate-400">Sisa target: {formatCurrency(goal.remaining)}</p>
                                 </div>
@@ -237,21 +287,40 @@ function DepositModal({ isOpen, onClose, goal, wallets, defaultAmount = '' }) {
                             </div>
 
                             <form onSubmit={handleDeposit} className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Sumber Dompet</label>
-                                    <select
-                                        value={data.wallet_id}
-                                        onChange={e => setData('wallet_id', e.target.value)}
-                                        className="select-luxury text-xs py-2"
-                                        required
-                                    >
-                                        {wallets.map(w => (
-                                            <option key={w.id} value={w.id}>
-                                                {w.name} (Saldo: {formatCurrency(w.balance)})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {isPhysical ? (
+                                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-900">
+                                        <span className="text-lg">🏺</span>
+                                        <div>
+                                            <p className="font-bold">Nabung di Celengan Nyata</p>
+                                            <p className="text-[11px] text-amber-700 mt-0.5">
+                                                Setoran ini hanya mencatat progres tabungan celengan fisik di kamar/rumahmu. <b>Saldo dompet web TIDAK AKAN dipotong</b>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Sumber Dompet</label>
+                                            <select
+                                                value={data.wallet_id}
+                                                onChange={e => setData('wallet_id', e.target.value)}
+                                                className="select-luxury text-xs py-2"
+                                                required
+                                            >
+                                                {wallets.map(w => (
+                                                    <option key={w.id} value={w.id}>
+                                                        {w.name} (Saldo: {formatCurrency(w.balance)})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2.5 text-xs text-blue-800">
+                                            <Wallet size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                                            <span>Saldo dompet yang dipilih akan otomatis terpotong dan dialokasikan ke target impian ini.</span>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div>
                                     <div className="flex justify-between items-center mb-1">
@@ -278,15 +347,10 @@ function DepositModal({ isOpen, onClose, goal, wallets, defaultAmount = '' }) {
                                     {errors.amount && <p className="text-xs text-rose-500 mt-1">{errors.amount}</p>}
                                 </div>
 
-                                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2.5 text-xs text-blue-800">
-                                    <Wallet size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <span>Saldo dompet yang dipilih akan otomatis terpotong dan dialokasikan ke target impian ini.</span>
-                                </div>
-
                                 <div className="flex justify-end gap-2 pt-2">
                                     <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Batal</button>
                                     <button type="submit" disabled={processing} className="btn-primary text-xs">
-                                        Konfirmasi Setor Dana
+                                        {isPhysical ? '🏺 Catat Masuk Celengan' : 'Konfirmasi Setor Dana'}
                                     </button>
                                 </div>
                             </form>
@@ -307,6 +371,16 @@ export default function GoalsIndex({ goals, wallets, monthlySavings, totalSaved,
     const [editingGoal, setEditingGoal] = useState(null);
     const [depositGoal, setDepositGoal] = useState(null);
     const [depositPrefill, setDepositPrefill] = useState('');
+    const [filterTab, setFilterTab] = useState('all'); // 'all' | 'digital' | 'physical'
+
+    const physicalCount = goals.filter(g => g.is_physical_savings).length;
+    const digitalCount  = goals.filter(g => !g.is_physical_savings).length;
+
+    const filteredGoals = goals.filter(g => {
+        if (filterTab === 'digital') return !g.is_physical_savings;
+        if (filterTab === 'physical') return g.is_physical_savings;
+        return true;
+    });
 
     const overallPct = totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0;
 
@@ -386,15 +460,53 @@ export default function GoalsIndex({ goals, wallets, monthlySavings, totalSaved,
                 </div>
             </div>
 
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-200 pb-3 flex-wrap">
+                <button
+                    onClick={() => setFilterTab('all')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        filterTab === 'all'
+                            ? 'bg-slate-900 text-white font-bold shadow-sm'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                    Semua Target ({goals.length})
+                </button>
+                <button
+                    onClick={() => setFilterTab('digital')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        filterTab === 'digital'
+                            ? 'bg-blue-600 text-white font-bold shadow-sm'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    }`}
+                >
+                    <span>💳</span> Tabungan Digital ({digitalCount})
+                </button>
+                <button
+                    onClick={() => setFilterTab('physical')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        filterTab === 'physical'
+                            ? 'bg-amber-600 text-white font-bold shadow-sm'
+                            : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                    }`}
+                >
+                    <span>🏺</span> Celengan Fisik Real Life ({physicalCount})
+                </button>
+            </div>
+
             {/* Goals Grid */}
-            {goals.length === 0 ? (
+            {filteredGoals.length === 0 ? (
                 <div className="glass-card bg-white p-12 text-center border border-slate-200">
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4 text-3xl">
-                        🎯
+                        {filterTab === 'physical' ? '🏺' : '🎯'}
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-1">Belum Ada Target Impian</h3>
+                    <h3 className="text-base font-bold text-slate-900 mb-1">
+                        {filterTab === 'physical' ? 'Belum Ada Celengan Fisik' : 'Belum Ada Target Impian'}
+                    </h3>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto mb-5">
-                        Mulai rencanakan pembelian aset, liburan ke Ranu Kumbolo, dana darurat, atau gadget impian Anda.
+                        {filterTab === 'physical'
+                            ? 'Buat celengan fisik untuk uang tunai di rumah tanpa memotong saldo dompet web.'
+                            : 'Mulai rencanakan pembelian aset, liburan, dana darurat, atau tabungan impian Anda.'}
                     </p>
                     <button
                         onClick={() => { setEditingGoal(null); setModalOpen(true); }}
@@ -405,7 +517,7 @@ export default function GoalsIndex({ goals, wallets, monthlySavings, totalSaved,
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {goals.map((g) => {
+                    {filteredGoals.map((g) => {
                         return (
                             <motion.div
                                 key={g.id}
@@ -427,11 +539,22 @@ export default function GoalsIndex({ goals, wallets, monthlySavings, totalSaved,
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-slate-900 text-sm font-display">{g.name}</h4>
-                                                {g.target_date && (
-                                                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                                        <Calendar size={12} /> Target: {g.target_date}
-                                                    </p>
-                                                )}
+                                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                    {g.is_physical_savings ? (
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                                            🏺 Celengan Fisik
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                                                            💳 Dompet Web
+                                                        </span>
+                                                    )}
+                                                    {g.target_date && (
+                                                        <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                                                            <Calendar size={12} /> Target: {g.target_date}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -531,16 +654,22 @@ export default function GoalsIndex({ goals, wallets, monthlySavings, totalSaved,
                                         {g.daily_target && (
                                             <button
                                                 onClick={() => openDeposit(g, String(g.daily_target))}
-                                                className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                                className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                                    g.is_physical_savings
+                                                        ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                }`}
                                             >
-                                                <Zap size={13} /> Setor Harian ({formatCurrency(g.daily_target)})
+                                                <Zap size={13} /> {g.is_physical_savings ? 'Nabung Harian' : 'Setor Harian'} ({formatCurrency(g.daily_target)})
                                             </button>
                                         )}
                                         <button
                                             onClick={() => openDeposit(g, '')}
-                                            className={`${g.daily_target ? 'px-3' : 'w-full'} py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm`}
+                                            className={`${g.daily_target ? 'px-3' : 'w-full'} py-2 rounded-xl text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
+                                                g.is_physical_savings ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-900 hover:bg-slate-800'
+                                            }`}
                                         >
-                                            <Wallet size={14} /> Setor Bebas
+                                            {g.is_physical_savings ? <span>🏺 Masukkan Celengan</span> : <><Wallet size={14} /> Setor Bebas</>}
                                         </button>
                                     </div>
                                 )}

@@ -48,6 +48,7 @@ class GoalController extends Controller
                     'color'                     => $g->color ?? '#2563EB',
                     'is_completed'              => $g->is_completed,
                     'status'                    => $g->status,
+                    'is_physical_savings'       => (bool) $g->is_physical_savings,
                 ];
             });
 
@@ -66,45 +67,58 @@ class GoalController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:100',
-            'target_amount'  => 'required|numeric|min:1000',
-            'daily_target'   => 'nullable|numeric|min:1000',
-            'current_amount' => 'nullable|numeric|min:0',
-            'target_date'    => 'nullable|date',
-            'icon'           => 'nullable|string|max:10',
-            'color'          => 'nullable|string|max:20',
+            'name'                 => 'required|string|max:100',
+            'target_amount'        => 'required|numeric|min:1000',
+            'daily_target'         => 'nullable|numeric|min:1000',
+            'current_amount'       => 'nullable|numeric|min:0',
+            'target_date'          => 'nullable|date',
+            'icon'                 => 'nullable|string|max:10',
+            'color'                => 'nullable|string|max:20',
+            'is_physical_savings'  => 'boolean',
         ]);
 
         Auth::user()->goals()->create($validated);
 
-        return back()->with('success', 'Target tabungan impian berhasil dibuat!');
+        $type = ($validated['is_physical_savings'] ?? false) ? 'Celengan fisik' : 'Target tabungan impian';
+        return back()->with('success', "{$type} berhasil dibuat!");
     }
 
     /**
-     * Deposit funds from a wallet directly into a goal
+     * Deposit into a goal.
+     * - Physical savings (celengan): just add to current_amount, NO wallet deduction.
+     * - Digital goal: deduct from selected wallet and log a transaction.
      */
     public function deposit(Request $request, Goal $goal): RedirectResponse
     {
+        if ($goal->user_id !== Auth::id()) abort(403);
+
+        $isPhysical = (bool) $goal->is_physical_savings;
+
         $validated = $request->validate([
-            'wallet_id' => 'required|exists:wallets,id',
+            'wallet_id' => $isPhysical ? 'nullable' : 'required|exists:wallets,id',
             'amount'    => 'required|numeric|min:1000',
         ]);
 
-        $user = Auth::user();
-        $wallet = $user->wallets()->findOrFail($validated['wallet_id']);
+        $user   = Auth::user();
         $amount = (float) $validated['amount'];
+        $wallet = null;
 
-        if ($wallet->balance < $amount) {
-            return back()->with('error', "Saldo dompet {$wallet->name} tidak mencukupi (Rp " . number_format($wallet->balance, 0, ',', '.') . ").");
+        if (!$isPhysical) {
+            $wallet = $user->wallets()->findOrFail($validated['wallet_id']);
+            if ($wallet->balance < $amount) {
+                return back()->with('error', "Saldo dompet {$wallet->name} tidak mencukupi (Rp " . number_format($wallet->balance, 0, ',', '.') . ").");
+            }
         }
 
         DB::beginTransaction();
         try {
-            // Deduct from wallet
-            $wallet->decrement('balance', $amount);
+            // Deduct wallet only for digital goals
+            if (!$isPhysical && $wallet) {
+                $wallet->decrement('balance', $amount);
+            }
 
             // Streak calculation
-            $today = Carbon::now()->startOfDay();
+            $today       = Carbon::now()->startOfDay();
             $lastDeposit = $goal->last_deposit_at ? Carbon::parse($goal->last_deposit_at)->startOfDay() : null;
 
             $newStreak = $goal->streak_count;
@@ -113,12 +127,12 @@ class GoalController extends Controller
             } elseif ($lastDeposit->isYesterday()) {
                 $newStreak += 1;
             } elseif (!$lastDeposit->isToday()) {
-                $newStreak = 1; // reset streak if missed a day
+                $newStreak = 1;
             }
 
             // Add to goal
             $goal->increment('current_amount', $amount);
-            $goal->refresh(); // Get fresh value from DB after increment
+            $goal->refresh();
 
             $goal->update([
                 'last_deposit_at' => $today->toDateString(),
@@ -126,27 +140,30 @@ class GoalController extends Controller
                 'status'          => ($goal->current_amount >= $goal->target_amount) ? 'completed' : 'active',
             ]);
 
-            // Log as transaction
-            Transaction::create([
-                'user_id'         => $user->id,
-                'wallet_id'       => $wallet->id,
-                'category_id'     => null,
-                'type'            => 'expense',
-                'amount'          => $amount,
-                'merchant_name'   => "Setor Target: {$goal->name}",
-                'description'     => "Alokasi tabungan untuk target '{$goal->name}'",
-                'date'            => now()->toDateString(),
-                'currency'        => $wallet->currency ?? 'IDR',
-                'is_ai_generated' => false,
-            ]);
+            // Only log transaction for digital goals (physical savings have no wallet effect)
+            if (!$isPhysical && $wallet) {
+                Transaction::create([
+                    'user_id'         => $user->id,
+                    'wallet_id'       => $wallet->id,
+                    'category_id'     => null,
+                    'type'            => 'expense',
+                    'amount'          => $amount,
+                    'merchant_name'   => "Setor Target: {$goal->name}",
+                    'description'     => "Alokasi tabungan untuk target '{$goal->name}'",
+                    'date'            => now()->toDateString(),
+                    'currency'        => $wallet->currency ?? 'IDR',
+                    'is_ai_generated' => false,
+                ]);
+            }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memproses setoran target: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses setoran: ' . $e->getMessage());
         }
 
-        return back()->with('success', "Berhasil menyetor Rp " . number_format($amount, 0, ',', '.') . " ke target '{$goal->name}'!");
+        $label = $isPhysical ? '🏺 Celengan' : '💰 Target';
+        return back()->with('success', "{$label} **{$goal->name}**: Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat!");
     }
 
     public function update(Request $request, Goal $goal): RedirectResponse
@@ -154,13 +171,14 @@ class GoalController extends Controller
         if ($goal->user_id !== Auth::id()) abort(403);
 
         $validated = $request->validate([
-            'name'           => 'required|string|max:100',
-            'target_amount'  => 'required|numeric|min:1000',
-            'daily_target'   => 'nullable|numeric|min:1000',
-            'current_amount' => 'nullable|numeric|min:0',
-            'target_date'    => 'nullable|date',
-            'icon'           => 'nullable|string|max:10',
-            'color'          => 'nullable|string|max:20',
+            'name'                => 'required|string|max:100',
+            'target_amount'       => 'required|numeric|min:1000',
+            'daily_target'        => 'nullable|numeric|min:1000',
+            'current_amount'      => 'nullable|numeric|min:0',
+            'target_date'         => 'nullable|date',
+            'icon'                => 'nullable|string|max:10',
+            'color'               => 'nullable|string|max:20',
+            'is_physical_savings' => 'boolean',
         ]);
 
         $goal->update($validated);

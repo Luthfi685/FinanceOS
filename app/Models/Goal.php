@@ -23,15 +23,17 @@ class Goal extends Model
         'icon',
         'color',
         'status',
+        'is_physical_savings',
     ];
 
     protected $casts = [
-        'target_amount'   => 'decimal:2',
-        'daily_target'    => 'decimal:2',
-        'current_amount'  => 'decimal:2',
-        'target_date'     => 'date',
-        'last_deposit_at' => 'date',
-        'streak_count'    => 'integer',
+        'target_amount'        => 'decimal:2',
+        'daily_target'         => 'decimal:2',
+        'current_amount'       => 'decimal:2',
+        'target_date'          => 'date',
+        'last_deposit_at'      => 'date',
+        'streak_count'         => 'integer',
+        'is_physical_savings'  => 'boolean',
     ];
 
     public function user(): BelongsTo

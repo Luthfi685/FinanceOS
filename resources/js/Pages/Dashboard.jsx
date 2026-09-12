@@ -43,7 +43,7 @@ const itemVariants = {
     show:   { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
 };
 
-function MetricCard({ title, value, change, icon: Icon, variant = 'default', currency = 'IDR', prefix }) {
+function MetricCard({ title, value, change, prevValue, prevMonthLabel, icon: Icon, variant = 'default', currency = 'IDR', prefix }) {
     const isPositive = change >= 0;
 
     const iconStyle = {
@@ -55,26 +55,35 @@ function MetricCard({ title, value, change, icon: Icon, variant = 'default', cur
     }[variant];
 
     return (
-        <motion.div variants={itemVariants} className="glass-card-hover p-6 bg-white border border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-                <div className={`p-2.5 rounded-xl border ${iconStyle}`}>
-                    <Icon size={18} strokeWidth={2.2} />
-                </div>
-                {change !== undefined && (
-                    <div className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
-                        isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                    }`}>
-                        {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                        {Math.abs(change)}%
+        <motion.div variants={itemVariants} className="glass-card-hover p-6 bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2.5 rounded-xl border ${iconStyle}`}>
+                        <Icon size={18} strokeWidth={2.2} />
                     </div>
-                )}
+                    {change !== undefined && (
+                        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                            isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>
+                            {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                            {Math.abs(change)}%
+                        </div>
+                    )}
+                </div>
+
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
+                <p className="text-2xl font-display font-extrabold text-slate-900 font-mono tracking-tight">
+                    {prefix && <span className="text-base text-slate-400 mr-0.5">{prefix}</span>}
+                    {formatCurrency(value, currency)}
+                </p>
             </div>
 
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-display font-extrabold text-slate-900 font-mono tracking-tight">
-                {prefix && <span className="text-base text-slate-400 mr-0.5">{prefix}</span>}
-                {formatCurrency(value, currency)}
-            </p>
+            {prevValue !== undefined && (
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>{prevMonthLabel ? `Bulan lalu (${prevMonthLabel})` : 'Bulan lalu'}:</span>
+                    <span className="font-semibold text-slate-700 font-mono">{formatCurrency(prevValue, currency)}</span>
+                </div>
+            )}
         </motion.div>
     );
 }
@@ -171,6 +180,8 @@ export default function Dashboard({
                         title="Pemasukan Bulan Ini"
                         value={metrics?.current_income ?? 0}
                         change={metrics?.income_change}
+                        prevValue={metrics?.prev_income}
+                        prevMonthLabel={metrics?.prev_month_label}
                         icon={TrendingUp}
                         variant="emerald"
                     />
@@ -178,6 +189,8 @@ export default function Dashboard({
                         title="Pengeluaran Bulan Ini"
                         value={metrics?.current_expense ?? 0}
                         change={metrics?.expense_change}
+                        prevValue={metrics?.prev_expense}
+                        prevMonthLabel={metrics?.prev_month_label}
                         icon={TrendingDown}
                         variant="crimson"
                     />
