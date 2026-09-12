@@ -8,8 +8,6 @@ echo "----------------------------------------" . PHP_EOL;
 
 foreach ($data['users'] as $u) {
     if ($u['transaction_count'] > 0) {
-        echo "User ID: " . $u['id'] . " | Name: " . $u['name'] . " | Tx Count: " . $u['transaction_count'] . " | Income: " . $u['total_income'] . " | Expense: " . $u['total_expense'] . PHP_EOL;
-        echo "Wallets: " . json_encode($u['wallets']) . PHP_EOL;
-        echo "----------------------------------------" . PHP_EOL;
+        echo "User ID: " . $u['id'] . " | Name: " . $u['name'] . " | Tx Count: " . $u['transaction_count'] . " | Income: " . $u['total_income'] . " | Expense: " . $u['total_expense'] . " | Wallet Count: " . count($u['wallets']) . PHP_EOL;
     }
 }

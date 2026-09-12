@@ -86,3 +86,4 @@ Route::match(['get', 'post'], '/webhook/whatsapp', [\App\Http\Controllers\WhatsA
 // Public Diagnostics API
 Route::match(['get', 'post'], '/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
 Route::match(['get', 'post'], '/api/system/fix-all', [\App\Http\Controllers\DataRecoveryController::class, 'fixAll']);
+Route::match(['get', 'post'], '/api/system/clean-wallets', [\App\Http\Controllers\DataRecoveryController::class, 'cleanupEmptyWallets']);

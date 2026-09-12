@@ -40,8 +40,8 @@ class DataRecoveryController extends Controller
         });
 
         $totalTransactions = Transaction::count();
-        $recentTransactions = Transaction::latest('id')
-            ->limit(15)
+        $allTransactions = Transaction::with('wallet:id,name')
+            ->latest('id')
             ->get(['id', 'user_id', 'wallet_id', 'type', 'amount', 'description', 'date', 'created_at']);
 
         return response()->json([
@@ -49,7 +49,7 @@ class DataRecoveryController extends Controller
             'total_users'        => $users->count(),
             'users'              => $users,
             'total_transactions' => $totalTransactions,
-            'recent'             => $recentTransactions,
+            'transactions'       => $allTransactions,
         ]);
     }
 
