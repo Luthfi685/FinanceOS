@@ -173,11 +173,36 @@ class DataRecoveryController extends Controller
     }
 
     /**
-     * Run full auto-healing: merge orphaned records, remove duplicates, recalculate wallet balances
+     * Remove empty duplicate "Dompet Utama" wallets created by anonymous guest sessions
+     */
+    public function cleanupEmptyWallets(): JsonResponse
+    {
+        $masterUser = User::first();
+        if (!$masterUser) {
+            return response()->json(['status' => false], 404);
+        }
+
+        // Delete empty "Dompet Utama" wallets that have no transactions and balance 0, keeping ID 1
+        $deleted = Wallet::where('user_id', $masterUser->id)
+            ->where('id', '!=', 1)
+            ->where('name', 'Dompet Utama')
+            ->where('balance', '<=', 0)
+            ->whereDoesntHave('transactions')
+            ->delete();
+
+        return response()->json([
+            'status' => true,
+            'deleted_empty_wallets' => $deleted,
+        ]);
+    }
+
+    /**
+     * Run full auto-healing: merge orphaned records, remove duplicates, delete empty wallets, recalculate balances
      */
     public function fixAll(Request $request): JsonResponse
     {
         $mergeRes = $this->mergeToMaster($request)->getData(true);
+        $cleanEmpty = $this->cleanupEmptyWallets()->getData(true);
         $cleanRes = $this->cleanDuplicates($request)->getData(true);
         $recalcRes = $this->recalculateBalances($request)->getData(true);
 
@@ -185,9 +210,10 @@ class DataRecoveryController extends Controller
             'status'  => true,
             'message' => 'Semua data transaksi dan saldo berhasil disinkronkan & diperbaiki.',
             'details' => [
-                'merge'   => $mergeRes,
-                'clean'   => $cleanRes,
-                'recalc'  => $recalcRes,
+                'merge'        => $mergeRes,
+                'clean_empty'  => $cleanEmpty,
+                'clean'        => $cleanRes,
+                'recalc'       => $recalcRes,
             ]
         ]);
     }
