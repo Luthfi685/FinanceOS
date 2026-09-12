@@ -30,6 +30,9 @@ class WhatsAppWebhookController extends Controller
     {
         $user  = \Illuminate\Support\Facades\Auth::user();
         $token = config('services.fonnte.token', env('FONNTE_TOKEN'));
+        if (empty($token) || $token === 'Ux3uesBxvvtBmbSy5VNn') {
+            $token = 'RkikVyVdJFFrTdX8FCXd';
+        }
 
         $recentTransactions = $user->transactions()
             ->with(['wallet:id,name,color', 'category:id,name,icon,color'])
@@ -708,13 +711,22 @@ PROMPT;
     protected function sendReply(string $target, string $message): JsonResponse
     {
         $token = config('services.fonnte.token', env('FONNTE_TOKEN', 'RkikVyVdJFFrTdX8FCXd'));
+        if (empty($token) || $token === 'Ux3uesBxvvtBmbSy5VNn') {
+            $token = 'RkikVyVdJFFrTdX8FCXd';
+        }
 
         try {
-            Http::withHeaders([
+            $response = Http::withHeaders([
                 'Authorization' => $token,
             ])->timeout(15)->post('https://api.fonnte.com/send', [
                 'target'  => $target,
                 'message' => $message,
+            ]);
+
+            Log::info('Fonnte send reply response', [
+                'target' => $target,
+                'status' => $response->status(),
+                'body'   => $response->json() ?? $response->body(),
             ]);
         } catch (\Exception $e) {
             Log::warning('Fonnte send reply failed: ' . $e->getMessage());
