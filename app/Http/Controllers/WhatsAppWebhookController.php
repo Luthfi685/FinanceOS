@@ -44,7 +44,8 @@ class WhatsAppWebhookController extends Controller
         $wallets = $user->wallets()->get(['id', 'name', 'balance', 'type']);
 
         return \Inertia\Inertia::render('WhatsAppBot/Index', [
-            'linkedPhone'        => $user->whatsapp_number ?: '6283126435560',
+            'botPhone'           => '6283176325931',
+            'linkedPhone'        => $user->whatsapp_number ?: '',
             'isConfigured'       => !empty($token),
             'webhookUrl'         => 'https://financeos-fh71.onrender.com/api/webhook/whatsapp',
             'recentTransactions' => $recentTransactions,
@@ -115,15 +116,20 @@ class WhatsAppWebhookController extends Controller
 
         // If the number is NOT registered:
         if (!$user) {
-            // Only reply if the sender explicitly asks to link / register
+            // If sender explicitly asks to link / register
             if (preg_match('/^(daftar|hubungkan|link|\/start)/i', $message)) {
-                $reply = "👋 *Halo! Nomor WhatsApp Anda Belum Terhubung*\n\n"
-                       . "Nomor WhatsApp ini (*+{$cleanPhone}*) belum terdaftar di akun FinanceOS mana pun.\n\n"
-                       . "🔗 *Cara Menghubungkan:*\n"
-                       . "1. Buka https://financeos-fh71.onrender.com/whatsapp-bot\n"
-                       . "2. Masukkan nomor Anda di menu tersebut.\n\n"
-                       . "Setelah terhubung, Anda bisa langsung mencatat pengeluaran secepat kirim chat!";
-                return $this->sendReply($sender, $reply);
+                $masterUser = User::first();
+                if ($masterUser) {
+                    $masterUser->update(['whatsapp_number' => $cleanPhone]);
+                    $reply = "✅ *Nomor WhatsApp Berhasil Terhubung!*\n\n"
+                           . "Halo *{$masterUser->name}*, nomor WhatsApp Anda (*+{$cleanPhone}*) telah otomatis ditautkan ke akun FinanceOS.\n\n"
+                           . "💡 *Mulai catat transaksi sekarang:*\n"
+                           . "• _kopi kenangan 25rb bca_\n"
+                           . "• _makan siang 35000 tunai_\n"
+                           . "• _gaji 5jt bca_\n"
+                           . "• Ketik *saldo* untuk cek semua dompet.";
+                    return $this->sendReply($sender, $reply);
+                }
             }
 
             // Normal chat from friends / family / other contacts -> SILENTLY IGNORE!
@@ -701,7 +707,7 @@ PROMPT;
      */
     protected function sendReply(string $target, string $message): JsonResponse
     {
-        $token = config('services.fonnte.token', env('FONNTE_TOKEN', 'Ux3uesBxvvtBmbSy5VNn'));
+        $token = config('services.fonnte.token', env('FONNTE_TOKEN', 'RkikVyVdJFFrTdX8FCXd'));
 
         try {
             Http::withHeaders([

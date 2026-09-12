@@ -26,7 +26,8 @@ function formatDate(dateStr) {
 }
 
 export default function WhatsAppBotIndex({
-    linkedPhone = '6283126435560',
+    botPhone = '6283176325931',
+    linkedPhone = '',
     isConfigured = true,
     webhookUrl = 'https://financeos-fh71.onrender.com/api/webhook/whatsapp',
     recentTransactions = [],
@@ -34,17 +35,20 @@ export default function WhatsAppBotIndex({
 }) {
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [copiedExample, setCopiedExample] = useState('');
-    const [isEditingPhone, setIsEditingPhone] = useState(false);
+    const [isEditingPhone, setIsEditingPhone] = useState(!linkedPhone);
 
     const { data, setData, post, processing } = useForm({
         whatsapp_number: linkedPhone,
     });
 
-    const displayPhone = linkedPhone.startsWith('62')
-        ? `+${linkedPhone.slice(0, 2)} ${linkedPhone.slice(2, 5)}-${linkedPhone.slice(5, 9)}-${linkedPhone.slice(9)}`
-        : linkedPhone;
+    const displayPhone = linkedPhone
+        ? (linkedPhone.startsWith('62')
+            ? `+${linkedPhone.slice(0, 2)} ${linkedPhone.slice(2, 5)}-${linkedPhone.slice(5, 9)}-${linkedPhone.slice(9)}`
+            : linkedPhone)
+        : 'Belum Dihubungkan';
 
-    const waLink = `https://wa.me/${linkedPhone.replace(/[^0-9]/g, '')}`;
+    const displayBotPhone = '+62 831-7632-5931';
+    const waLink = `https://wa.me/6283176325931?text=saldo`;
 
     function copyToClipboard(text, id) {
         navigator.clipboard.writeText(text);
@@ -117,11 +121,11 @@ export default function WhatsAppBotIndex({
             <div className="space-y-6">
                 {/* ── Top Overview Grid ────────────────────────────────────────── */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {/* Card 1: Linked Number */}
+                    {/* Card 1: User's Authorized WhatsApp Number */}
                     <div className="glass-card p-5 bg-white border border-slate-200 relative overflow-hidden flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nomor Bot Terhubung</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nomor WA Anda (Otorisasi)</span>
                                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                                     <Smartphone size={16} />
                                 </div>
@@ -133,7 +137,7 @@ export default function WhatsAppBotIndex({
                                         type="text"
                                         value={data.whatsapp_number}
                                         onChange={e => setData('whatsapp_number', e.target.value)}
-                                        placeholder="083126435560 atau 628..."
+                                        placeholder="Contoh: 08123456789"
                                         className="input-luxury text-xs py-1.5 font-mono"
                                         required
                                     />
@@ -157,7 +161,9 @@ export default function WhatsAppBotIndex({
                             ) : (
                                 <div>
                                     <div className="text-xl font-bold font-mono text-slate-900 tracking-tight flex items-center gap-2">
-                                        <span>{displayPhone}</span>
+                                        <span className={linkedPhone ? 'text-slate-900' : 'text-amber-600 text-base'}>
+                                            {displayPhone}
+                                        </span>
                                         <button
                                             onClick={() => setIsEditingPhone(true)}
                                             className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-all cursor-pointer"
@@ -167,15 +173,17 @@ export default function WhatsAppBotIndex({
                                         </button>
                                     </div>
                                     <div className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                                        <CheckCircle2 size={13} /> Terverifikasi via Fonnte Gateway
+                                        <CheckCircle2 size={13} /> {linkedPhone ? 'Terhubung dengan Akun Anda' : 'Ketik "daftar" ke bot untuk auto-link'}
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400">Penyedia:</span>
-                            <span className="font-semibold text-slate-700">Fonnte WhatsApp API</span>
+                            <span className="text-slate-400">Nomor Bot:</span>
+                            <a href={waLink} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-600 hover:underline">
+                                {displayBotPhone} ↗
+                            </a>
                         </div>
                     </div>
 
